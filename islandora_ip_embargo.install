@@ -130,3 +130,28 @@ function islandora_ip_embargo_update_7100() {
   );
   db_add_field('islandora_ip_embargo_embargoes', 'expiry_event_triggered', $new_field);
 }
+
+/**
+ * Implements hook_update_N().
+ */
+function islandora_ip_embargo_update_7200() {
+  $schema['islandora_ip_embargo_collections'] = array(
+    'description' => 'Table that stores information on collections.',
+    'fields' => array(
+      'pid' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The PID of the collection whose members inherit the embargo.',
+      ),
+      'members_inherit_embargo' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "1 if members inherit the collection's embargo, 0 if not.",
+      ),
+    ),
+  );
+  db_create_table('islandora_ip_embargo_collections', $schema['islandora_ip_embargo_collections']);
+}
