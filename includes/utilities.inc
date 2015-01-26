@@ -411,3 +411,77 @@ function islandora_ip_embargo_restrict_access($pid) {
   }
   return !$open_access;
 }
+
+/**
+ * Get a collection's embargo inheritance.
+ *
+ * @param string $islandora_object_id
+ *   The collection's PID.
+ *
+ * @return int
+ *   1 if there are rows, 0 if not.
+ */
+function islandora_ip_embargo_get_collection_member_embargo($islandora_object_id) {
+  $embargoed = db_select('islandora_ip_embargo_collections', 'c')
+  ->condition('pid', $islandora_object_id)
+  ->fields('c', array('members_inherit_embargo'))
+  ->execute()
+  ->fetchField();
+  if ($embargoed) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+/**
+ * Set a collection object's member embargo inheritance.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the collection object to set the embargo for.
+ */
+function islandora_ip_embargo_add_collection_member_embargo($islandora_object_id) {
+  // We only need one row per collection, so before we add a new one,
+  // we see if one already exists.
+  $count = islandora_ip_embargo_count_collection_embargos($islandora_object_id);
+  if (!$count) {
+    db_insert('islandora_ip_embargo_collections')
+    ->fields(array(
+      'pid' => $islandora_object_id,
+      'members_inherit_embargo' => '1',
+    ))
+    ->execute();
+  }
+}
+
+/**
+ * Remove a collection object's embargo inheritance.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the object to remove the embargo from.
+ */
+function islandora_ip_embargo_remove_collection_member_embargo($islandora_object_id) {
+  db_delete('islandora_ip_embargo_collections')
+  ->condition('pid', $islandora_object_id)
+  ->execute();
+}
+
+/**
+ * Counts the number of collection embargo inhertiance records.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the object to remove the embargo from.
+ *
+ * @return int
+ *   The number of rows.
+ */
+function islandora_ip_embargo_count_collection_embargos($islandora_object_id) {
+  return db_select('islandora_ip_embargo_collections', 'c')
+  ->fields('c', array('members_inherit_embargo'))
+  ->condition('pid', $islandora_object_id)
+  ->condition('members_inherit_embargo', '1')
+  ->countQuery()
+  ->execute()
+  ->fetchField();
+}

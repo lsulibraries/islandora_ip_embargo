@@ -399,6 +399,16 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     $options[$data->lid] = $data->name;
   }
 
+  // Determine if the current object is a collection (has a
+  // datastream with ID 'COLLECTION_POLICY') or not. We don't
+  // want the 'Create Bag' tab to show up on collection objects.
+  $is_collection = FALSE;
+  foreach ($islandora_object as $ds) {
+    if ($ds->id == 'COLLECTION_POLICY') {
+      $is_collection = TRUE;
+    }
+  }
+
   $form['lists'] = array(
     '#type' => 'select',
     '#title' => 'IP address range list',
@@ -415,6 +425,15 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     '#title' => 'Never expire',
     '#description' => t('This embargo should never expire, overrides the Expiry date field.'),
   );
+  if ($is_collection) {
+    $inherit = islandora_ip_embargo_get_collection_member_embargo($islandora_object->id);
+    $form['members_inherit_embargo'] = array(
+      '#type' => 'checkbox',
+      '#title' => 'Members inherit embargo',
+      '#default_value' => $inherit,
+      '#description' => t('Members of this collection should inherit its embargos.'),
+    );
+  }
 
   $embargo_result = islandora_ip_embargo_get_embargo($islandora_object->id);
   if ($embargo_result->rowCount()) {
@@ -480,6 +499,16 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
       $form_state['values']['lists'],
       $expiry
     );
+  }
+  if (isset($form_state['values']['members_inherit_embargo'])) {
+    $pid = $form_state['storage']['islandroa_ip_embargo']['pid'];
+    $inherit = $form_state['values']['members_inherit_embargo'];
+    if ($form_state['values']['members_inherit_embargo']) {
+      islandora_ip_embargo_add_collection_member_embargo($pid);
+    }
+    else {
+      islandora_ip_embargo_remove_collection_member_embargo($pid);
+    }
   }
   return $form;
 }
