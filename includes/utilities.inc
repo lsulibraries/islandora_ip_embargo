@@ -202,13 +202,16 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
  *   The IP address range list to use for the embargo.
  * @param int $expiry
  *   The timestamp to stop the embargo at.
+ * @param string $coll
+ *   The PID of the collection the object is a member of.
  */
-function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL) {
+function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL, $coll = NULL) {
   db_insert('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
     'lid' => $list_id,
     'expiry' => $expiry,
+    'collection_pid' => $coll,
   ))
   ->execute();
 }

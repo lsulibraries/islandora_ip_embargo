@@ -208,3 +208,30 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
     }
   }
 }
+
+/**
+ * Implements hook_islandora_object_ingested().
+ */
+function islandora_ip_embargo_islandora_object_ingested(FedoraObject $islandora_object) {
+  module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  // Get the collection the object is a member of. An object is only ever
+  // ingested into one collection, but it might be shared with additional
+  // collections later. We need to handle this situation in a object_modified
+  // hook.
+  $collections = $islandora_object->relationships->get(FEDORA_RELS_EXT_URI, 'isMemberOfCollection');
+  $collection_pid = $collections[0]['object']['value'];
+
+  // Query islandora_ip_embargo_collections for the collection.
+  $coll_has_embargo = islandora_ip_embargo_get_collection_member_embargo($collection_pid);
+  if ($coll_has_embargo) {
+    $coll_embargo_result = islandora_ip_embargo_get_embargo($collection_pid);
+    // If rows are present, add rows for the current object to the
+    // islandora_ip_embargo_embargoes table for the object with the same
+    // attributes as the parent collection's record.
+    if ($coll_embargo_result->rowCount()) {
+      foreach ($coll_embargo_result as $row) {
+        islandora_ip_embargo_set_embargo($islandora_object->id, $row->lid, $row->expiry, $collection_pid);
+      }
+    }
+  }
+}
