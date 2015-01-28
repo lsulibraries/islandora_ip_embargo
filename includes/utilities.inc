@@ -191,6 +191,16 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
   ))
   ->condition('pid', $islandora_object_id)
   ->execute();
+
+  // If the current object is a collection, update the embargoes of all
+  // members.
+  db_update('islandora_ip_embargo_embargoes')
+  ->fields(array(
+    'lid' => $list_id,
+    'expiry' => $expiry,
+  ))
+  ->condition('collection_pid', $islandora_object_id)
+  ->execute();
 }
 
 /**
