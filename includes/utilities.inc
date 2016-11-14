@@ -253,6 +253,7 @@ function islandora_ip_embargo_ip_in_range($low, $high) {
   if ($comparable_address >= $comparable_low && $comparable_address <= $comparable_high) {
     return TRUE;
   }
+  printf("IP address %s restricted, Not within range (%s - %s).<br/>", ip_address(), $low, $high);
   return FALSE;
 }
 
@@ -403,26 +404,49 @@ function islandora_ip_embargo_get_all_embargo_objects($limit = 10) {
  */
 function islandora_ip_embargo_restrict_access($pid) {
   $open_access = FALSE;
-
-  $embargo_result = islandora_ip_embargo_get_embargo($pid);
-  if ($embargo_result->rowCount()) {
-    $embargo_info = $embargo_result->fetchObject();
-    $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid);
-    if ($list_results->rowCount()) {
-      while ($list_info = $list_results->fetchObject()) {
-        if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
-          $open_access = TRUE;
+  $parent_collections = islandora_ip_embargo_get_parent_collections($pid);
+  array_unshift($parent_collections, $pid);
+  $candidates = array_filter($parent_collections, function($el){
+      $embargo_result = islandora_ip_embargo_get_embargo($el);
+      return $embargo_result->rowCount();
+  });
+  if(empty($candidates)){
+      $open_access = TRUE;
+  }
+  foreach($candidates as $c){
+    $embargo_result = islandora_ip_embargo_get_embargo($c);
+    if ($embargo_result->rowCount()) {
+      $embargo_info = $embargo_result->fetchObject();
+      $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid);
+      if ($list_results->rowCount()) {
+          printf("Found embargo list for $c <br/>");
+        while ($list_info = $list_results->fetchObject()) {
+          if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
+            $open_access = TRUE;
+            printf("IP address %s passes embargo: (%s - %s)<br/>", ip_address(), $list_info->low_end, $list_info->high_end);
+          }
         }
+      }
+      else {
+        $open_access = TRUE;
+        printf("No lists for $c <br/>");
       }
     }
     else {
       $open_access = TRUE;
+      printf("No embargoes found for $c <br/>");
     }
   }
-  else {
-    $open_access = TRUE;
-  }
   return !$open_access;
+}
+
+function islandora_ip_embargo_restrict_access_by_collection($pid) {
+    $parents = islandora_ip_embargo_get_parent_collections($pid);
+    $score = 0;
+    foreach ($parents as $c){
+        $score += islandora_ip_embargo_get_collection_member_embargo($c);
+    }
+    return $score;
 }
 
 /**
@@ -497,4 +521,18 @@ function islandora_ip_embargo_count_collection_embargos($islandora_object_id) {
   ->countQuery()
   ->execute()
   ->fetchField();
+}
+
+function islandora_ip_embargo_get_parent_collections($pid){
+
+    $parents = array();
+    $object = islandora_object_load($pid);
+    if($object){
+        $relationships = $object->relationships->get(FEDORA_RELS_EXT_URI, 'isMemberOfCollection');
+        foreach ($relationships as $rel){
+            if(!in_array($rel['object']['value'], $parents));
+            $parents[] = $rel['object']['value'];
+        }
+    }
+    return $parents;   
 }
