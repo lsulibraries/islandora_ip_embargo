@@ -17,17 +17,9 @@ function islandora_ip_embargo_get_lists() {
   $query = $query->fields('islandora_ip_embargo_lists');
   $query = $query->extend('TableSort');
   $query = $query->extend('PagerDefault');
-  $query = $query->limit(100);
+  $query = $query->limit(10);
 
   return $query->execute();
-}
-
-function islandora_ip_embargo_get_ranges($lid){
-    $ranges = db_select('islandora_ip_embargo_ip_ranges')
-            ->fields('islandora_ip_embargo_ip_ranges')
-            ->condition('lid', $lid)
-            ->execute();
-  return $ranges;
 }
 
 /**
@@ -70,54 +62,45 @@ function islandora_ip_embargo_remove_list($list_identifier) {
 }
 
 /**
- * Get the a list object.
+ * Get the name of a list.
  *
- * @param string $field
- *   Field in islandora_ip_embargo_lists to use for the lookup.
- *   Must be one of 'lid' | 'name'; or error.
- * 
- * @param string $value
- *   Value of the field used for the lookup.
+ * @param int $list_identifier
+ *   The identifier of the list to delete.
  *
- * @return object $data
- *   The list object.
- * 
+ * @return string
+ *   The human readable name of the list.
  */
-function islandora_ip_embargo_get_list_object_by($field, $value) {
-  if(!in_array($field, array('lid', 'name'))){
-    throw new Exception("Incorrect field: ($field) given for list lookup");
-  }
-
-  $list = db_select('islandora_ip_embargo_lists', 'i')
-  ->fields("i")
-  ->condition($field, $value)
-  ->range(0,1)
+function islandora_ip_embargo_get_list_name($list_identifier) {
+  $list = db_select('islandora_ip_embargo_lists')
+  ->fields('islandora_ip_embargo_lists')
+  ->condition('lid', $list_identifier)
   ->execute();
-  return $list->fetchObject();
+  $data = $list->fetchObject();
+
+  return $data->name;
 }
 
 /**
  * Get a list's information.
  *
+ * This is not a general function it is used for pagination.
+ *
  * @param int $list_identifier
  *   The identifier of the list.
- * @param bool $page_results
- *   TRUE to page results for display, otherwise return all results.
  *
  * @return SelectQuery
  *   The query return.
  */
-function islandora_ip_embargo_get_lists_information($list_identifier, $page_results = TRUE) {
+function islandora_ip_embargo_get_lists_information($list_identifier) {
   $query = db_select("islandora_ip_embargo_lists", 'lists');
   $query->join('islandora_ip_embargo_ip_ranges', 'ranges', 'lists.lid = ranges.lid');
   $query = $query->fields('ranges');
   $query = $query->fields('lists');
   $query = $query->condition('lists.lid', $list_identifier);
-  if ($page_results) {
-    $query = $query->extend('TableSort');
-    $query = $query->extend('PagerDefault');
-    $query = $query->limit(10);
-  }
+  $query = $query->extend('TableSort');
+  $query = $query->extend('PagerDefault');
+  $query = $query->limit(10);
+
   return $query->execute();
 }
 
@@ -208,6 +191,16 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
   ))
   ->condition('pid', $islandora_object_id)
   ->execute();
+
+  // If the current object is a collection, update the embargoes of all
+  // members.
+  db_update('islandora_ip_embargo_embargoes')
+  ->fields(array(
+    'lid' => $list_id,
+    'expiry' => $expiry,
+  ))
+  ->condition('collection_pid', $islandora_object_id)
+  ->execute();
 }
 
 /**
@@ -219,13 +212,16 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
  *   The IP address range list to use for the embargo.
  * @param int $expiry
  *   The timestamp to stop the embargo at.
+ * @param string $coll
+ *   The PID of the collection the object is a member of.
  */
-function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL) {
+function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL, $coll = NULL) {
   db_insert('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
     'lid' => $list_id,
     'expiry' => $expiry,
+    'collection_pid' => $coll,
   ))
   ->execute();
 }
@@ -257,6 +253,7 @@ function islandora_ip_embargo_ip_in_range($low, $high) {
   if ($comparable_address >= $comparable_low && $comparable_address <= $comparable_high) {
     return TRUE;
   }
+  printf("IP address %s restricted, Not within range (%s - %s).<br/>", ip_address(), $low, $high);
   return FALSE;
 }
 
@@ -407,24 +404,135 @@ function islandora_ip_embargo_get_all_embargo_objects($limit = 10) {
  */
 function islandora_ip_embargo_restrict_access($pid) {
   $open_access = FALSE;
-
-  $embargo_result = islandora_ip_embargo_get_embargo($pid);
-  if ($embargo_result->rowCount()) {
-    $embargo_info = $embargo_result->fetchObject();
-    $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid, FALSE);
-    if ($list_results->rowCount()) {
-      while ($list_info = $list_results->fetchObject()) {
-        if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
-          $open_access = TRUE;
+  $parent_collections = islandora_ip_embargo_get_parent_collections($pid);
+  array_unshift($parent_collections, $pid);
+  $candidates = array_filter($parent_collections, function($el){
+      $embargo_result = islandora_ip_embargo_get_embargo($el);
+      return $embargo_result->rowCount();
+  });
+  if(empty($candidates)){
+      $open_access = TRUE;
+  }
+  foreach($candidates as $c){
+    $embargo_result = islandora_ip_embargo_get_embargo($c);
+    if ($embargo_result->rowCount()) {
+      $embargo_info = $embargo_result->fetchObject();
+      $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid);
+      if ($list_results->rowCount()) {
+          printf("Found embargo list for $c <br/>");
+        while ($list_info = $list_results->fetchObject()) {
+          if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
+            $open_access = TRUE;
+            printf("IP address %s passes embargo: (%s - %s)<br/>", ip_address(), $list_info->low_end, $list_info->high_end);
+              }
         }
+      }
+      else {
+        $open_access = TRUE;
+        printf("No lists for $c <br/>");
       }
     }
     else {
       $open_access = TRUE;
+      printf("No embargoes found for $c <br/>");
     }
   }
-  else {
-    $open_access = TRUE;
-  }
   return !$open_access;
+}
+
+function islandora_ip_embargo_restrict_access_by_collection($pid) {
+    $parents = islandora_ip_embargo_get_parent_collections($pid);
+    $score = 0;
+    foreach ($parents as $c){
+        $score += islandora_ip_embargo_get_collection_member_embargo($c);
+    }
+    return $score;
+}
+
+/**
+ * Get a collection's embargo inheritance.
+ *
+ * @param string $islandora_object_id
+ *   The collection's PID.
+ *
+ * @return int
+ *   1 if there are rows, 0 if not.
+ */
+function islandora_ip_embargo_get_collection_member_embargo($islandora_object_id) {
+  $embargoed = db_select('islandora_ip_embargo_collections', 'c')
+  ->condition('pid', $islandora_object_id)
+  ->fields('c', array('members_inherit_embargo'))
+  ->execute()
+  ->fetchField();
+  if ($embargoed) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+/**
+ * Set a collection object's member embargo inheritance.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the collection object to set the embargo for.
+ */
+function islandora_ip_embargo_add_collection_member_embargo($islandora_object_id) {
+  // We only need one row per collection, so before we add a new one,
+  // we see if one already exists.
+  $count = islandora_ip_embargo_count_collection_embargos($islandora_object_id);
+  if (!$count) {
+    db_insert('islandora_ip_embargo_collections')
+    ->fields(array(
+      'pid' => $islandora_object_id,
+      'members_inherit_embargo' => '1',
+    ))
+    ->execute();
+  }
+}
+
+/**
+ * Remove a collection object's embargo inheritance.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the object to remove the embargo from.
+ */
+function islandora_ip_embargo_remove_collection_member_embargo($islandora_object_id) {
+  db_delete('islandora_ip_embargo_collections')
+  ->condition('pid', $islandora_object_id)
+  ->execute();
+}
+
+/**
+ * Counts the number of collection embargo inhertiance records.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the object to remove the embargo from.
+ *
+ * @return int
+ *   The number of rows.
+ */
+function islandora_ip_embargo_count_collection_embargos($islandora_object_id) {
+  return db_select('islandora_ip_embargo_collections', 'c')
+  ->fields('c', array('members_inherit_embargo'))
+  ->condition('pid', $islandora_object_id)
+  ->condition('members_inherit_embargo', '1')
+  ->countQuery()
+  ->execute()
+  ->fetchField();
+}
+
+function islandora_ip_embargo_get_parent_collections($pid){
+
+    $parents = array();
+    $object = islandora_object_load($pid);
+    if($object){
+        $relationships = $object->relationships->get(FEDORA_RELS_EXT_URI, 'isMemberOfCollection');
+        foreach ($relationships as $rel){
+            if(!in_array($rel['object']['value'], $parents));
+            $parents[] = $rel['object']['value'];
+        }
+    }
+    return $parents;   
 }
