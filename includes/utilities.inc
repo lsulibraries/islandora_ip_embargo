@@ -255,8 +255,10 @@ function islandora_ip_embargo_ip_in_range($low, $high) {
   $comparable_high = ip2long($high);
   $comparable_low = ip2long($low);
   if ($comparable_address >= $comparable_low && $comparable_address <= $comparable_high) {
+    watchdog('islandora_ip_embargo', "request from %ip - SUCCESS  [%low !<= %iplong !<= %hi", array('%low'=> $comparable_low, '%hi'=> $comparable_high, '%ip' => ip_address(), '%iplong'=> $comparable_address), WATCHDOG_NOTICE);
     return TRUE;
   }
+  watchdog('islandora_ip_embargo', "request from %ip - FAIL  [%low !<= %iplong !<= %hi", array('%low'=> $comparable_low, '%hi'=> $comparable_high, '%ip' => ip_address(), '%iplong'=> $comparable_address), WATCHDOG_NOTICE);
   return FALSE;
 }
 
