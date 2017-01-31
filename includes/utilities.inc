@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Holds helper functions for islandora_ip_embargo.
@@ -239,6 +240,10 @@ function islandora_ip_embargo_ip_in_range($low, $high) {
   $comparable_high = ip2long($high);
   $comparable_low = ip2long($low);
   if ($comparable_address >= $comparable_low && $comparable_address <= $comparable_high) {
+    return TRUE;
+  }
+  $djip = variable_get('islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1');
+  if ($comparable_address == ip2long($djip)) {
     return TRUE;
   }
   return FALSE;
