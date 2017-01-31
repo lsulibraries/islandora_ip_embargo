@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * This file holds forms for islandora_ip_embargo
@@ -61,6 +62,16 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
     '#default_value' => variable_get(
       'islandora_ip_embargo_overlay_text_color',
       'FF0000'
+    ),
+  );
+  $form['islandora_ip_embargo_djatoka_public_ip_address'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Djatoka public ip'),
+    '#description' => t('IP address from which djatoka makes requests.'),
+    '#maxlength' => 15,
+    '#required' => FALSE,
+    '#default_value' => variable_get(
+        'islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1'
     ),
   );
 
