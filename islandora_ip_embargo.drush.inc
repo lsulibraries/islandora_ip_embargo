@@ -120,7 +120,7 @@ function drush_islandora_ip_embargo_addRange() {
   }
   if (!$target_list_id) {
     islandora_ip_embargo_add_list($target_list);
-    $target_list_id = islandora_ip_embargo_get_list_object_by('name', $target_list)->lid;
+    $target_list_id = islandora_ip_embargo_get_list_object_by('name', $target_list);
     drupal_set_message(t('Created list %l', array('%l' => $target_list)));
   }
 
@@ -211,7 +211,7 @@ function drush_islandora_ip_embargo_set_embargo_from_pid_list() {
 function make_embargo_from_params($params) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $pid = $params['pid'];
-  $list = islandora_ip_embargo_get_list_object_by('name', $params['list']);
+  $lid = islandora_ip_embargo_get_list_object_by('name', $params['list']);
 
   // Set up expiry date from params.
   if ($params['expiry'] !== NULL) {
@@ -239,13 +239,13 @@ function make_embargo_from_params($params) {
   // Determine whether an embargo exists already for an object.
   $update = islandora_ip_embargo_get_embargo($pid)->fetchObject();
   if ($update) {
-    if ($update->lid == $list->lid && $update->expiry == $expiry) {
+    if ($update->lid == $lid && $update->expiry == $expiry) {
       drupal_set_message(t(
           "No update required for IP range list %list to Islandora object %obj, set to expire %exp",
           array('%list' => $params['list'], '%obj' => $pid, '%exp' => $exp_str))
       );
     }
-    islandora_ip_embargo_update_embargo($pid, $list->lid, $expiry);
+    islandora_ip_embargo_update_embargo($pid, $lid, $expiry);
     drupal_set_message(
         t(
             "Updated IP range list %list to Islandora object %obj, set to expire %exp",
@@ -268,7 +268,7 @@ function make_embargo_from_params($params) {
     );
   }
   else {
-    islandora_ip_embargo_set_embargo($pid, $list->lid, $expiry);
+    islandora_ip_embargo_set_embargo($pid, $lid, $expiry);
     drupal_set_message(
         t(
             "Added IP range list %list to Islandora object %obj, set to expire %exp",

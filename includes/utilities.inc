@@ -101,8 +101,19 @@ function islandora_ip_embargo_get_list_object_by($field, $value) {
   ->fields("i")
   ->condition($field, $value)
   ->range(0, 1)
-  ->execute();
-  return $list->fetchObject();
+  ->execute()->fetchObject();
+  return $field == 'lid' ? $list->name : $list->lid;
+}
+
+/**
+ * Given a list id, returns the list name.
+ *
+ * @param string|int $list_identifier
+ *   value corresponding to the lid field in the
+ *   `islandora_ip_embargo_lists` table.
+ */
+function islandora_ip_embargo_get_list_name($list_identifier) {
+  return islandora_ip_embargo_get_list_object_by('lid', $list_identifier);
 }
 
 /**
