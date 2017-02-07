@@ -22,6 +22,12 @@ A Drupal based approach to embargoing content based on IP ranges.
 This module is not integrated with the Islandora Embargo module.
 This module breaks islandora_xml_site_map with its redirects. 
 
+LOGGING
+-------
+
+Watchdog entries are generated at the start and end of cron, and for
+requests that are denied by the embargo.
+
 CONFIGURATION
 -------------
 
