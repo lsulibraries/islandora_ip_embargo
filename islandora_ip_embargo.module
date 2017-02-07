@@ -8,6 +8,7 @@
 define('ISLANDORA_IP_EMBARGO_ADMINISTER_PERMISSION', 'administer islandora ip embargoes');
 define('ISLANDORA_IP_EMBARGO_CONTROL_EMBARGOES', 'control islandora ip embargoes');
 define('ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES', 'manage islandora ip embargoes');
+define('ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS', 'View datastreams marked as public in the embargo management form.');
 
 /**
  * Implements hook_permission().
@@ -25,6 +26,10 @@ function islandora_ip_embargo_permission() {
     ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES => array(
       'title' => t('Manage embargoes'),
       'description' => t('Manage embargoed objects'),
+    ),
+    ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS => array(
+      'title' => t('Access public datastreams'),
+      'description' => t('Access datastreams marked as public'),
     ),
   );
 }
@@ -117,9 +122,14 @@ function islandora_ip_embargo_menu() {
  */
 function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datastream, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $datastreams_allowed = islandora_ip_embargo_get_public_datastreams($islandora_datastream->parent->id);
+
   // If we're looking for a thumbnail let it through.
   $restrict_access = islandora_ip_embargo_restrict_access($islandora_datastream->parent->id);
-  if ($islandora_datastream->id == 'TN' && $restrict_access) {
+  if ($islandora_datastream->id == 'TN' && $restrict_access && empty($datastreams_allowed)) {
+    return TRUE;
+  }
+  elseif (in_array($islandora_datastream->id, $datastreams_allowed) && $restrict_access && user_access(ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS)) {
     return TRUE;
   }
   elseif ($restrict_access) {
@@ -139,6 +149,11 @@ function islandora_ip_embargo_islandora_object_access($op, $islandora_object, $u
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   // Handle an embargo.
   if (islandora_ip_embargo_restrict_access($islandora_object->id) && !user_access(ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES)) {
+    // Before redirect, check if this item has a soft embargo.
+    $public_dsids = islandora_ip_embargo_get_public_datastreams($islandora_object->id);
+    if (!empty($public_dsids) && user_access(ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS)) {
+      return NULL;
+    }
     // If there is a redirect configured then use it. If not let Drupal do it.
     $redirect_url = variable_get('islandora_ip_embargo_embargoed_redirect', '');
     watchdog('IP Embargo', "Denied request from %host.", array('%host' => $user->hostname));
