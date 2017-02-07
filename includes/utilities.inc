@@ -592,6 +592,10 @@ function islandora_ip_embargo_make_embargo_from_params($params) {
         ), WATCHDOG_DEBUG
     );
   }
+  $dsids = array_map('trim', explode(',', $params['public_dsids']));
+  if (!empty($dsids)) {
+    islandora_ip_embargo_save_public_datastreams($pid, $dsids);
+  }
 }
 
 /**
@@ -652,4 +656,16 @@ function islandora_ip_embargo_get_public_datastreams_options($islandora_object) 
     $dsid_options[$dsid] = $dsid;
   }
   return $dsid_options;
+}
+
+/**
+ * Remove an object's public DSID information.
+ *
+ * @param string $islandora_object_id
+ *   The PID of the object to remove the public DSIDs record.
+ */
+function islandora_ip_embargo_remove_public_datastreams($islandora_object_id) {
+  db_delete('islandora_ip_embargo_embargoes_public_ds')
+  ->condition('pid', $islandora_object_id)
+  ->execute();
 }
