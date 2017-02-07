@@ -469,6 +469,13 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     '#title' => 'Never expire',
     '#description' => t('This embargo should never expire, overrides the Expiry date field.'),
   );
+  $form['public_datastreams'] = array(
+    '#type' => 'checkboxes',
+    '#title' => 'Public Datastreams',
+    '#description' => 'Checked datastreams will be visible to users with "View public datastreams" permission, regardless of the embargo.',
+    '#options' => islandora_ip_embargo_get_public_datastreams_options($islandora_object),
+    '#default_value' => islandora_ip_embargo_get_public_datastreams($islandora_object->id),
+  );
 
   $embargo_result = islandora_ip_embargo_get_embargo($islandora_object->id);
   if ($embargo_result->rowCount()) {
@@ -535,6 +542,10 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
       $expiry
     );
   }
+  islandora_ip_embargo_save_public_datastreams(
+      $form_state['storage']['islandroa_ip_embargo']['pid'],
+      $form_state['values']['public_datastreams']
+      );
   return $form;
 }
 

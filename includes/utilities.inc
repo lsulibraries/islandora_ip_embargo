@@ -412,3 +412,63 @@ function islandora_ip_embargo_restrict_access($pid) {
   }
   return !$open_access;
 }
+
+/**
+ * For a given PID, return the array of DSIDs saved as public.
+ *
+ * @param string $pid
+ *   Islandora PID
+ *
+ * @return array
+ *   Simple array with one DSID per element, or empty, if no record exists.
+ */
+function islandora_ip_embargo_get_public_datastreams($pid) {
+  $dsids = db_select('islandora_ip_embargo_embargoes_public_ds', 'd')
+    ->fields('d', array('dsids'))
+    ->condition('pid', $pid)
+    ->execute()
+    ->fetchField();
+  $dsids = $dsids ? explode(',', $dsids) : array();
+  return $dsids;
+}
+
+/**
+ * Insert new or update existing db record.
+ *
+ * @param string $pid
+ *   Islandora PID
+ *
+ * @param array $dsids
+ *   Array representing the checked items from a checkboxes form element.
+ */
+function islandora_ip_embargo_save_public_datastreams($pid, $dsids) {
+  $dsids = implode(',', array_filter(array_values($dsids)));
+  $public_dsids = islandora_ip_embargo_get_public_datastreams($pid);
+  $op = empty($public_dsids) ? 'insert' : 'update';
+  $fn = "db_$op";
+  $fn('islandora_ip_embargo_embargoes_public_ds')
+  ->fields(array(
+    'dsids' => $dsids,
+    ))
+  ->condition('pid', $pid, '=')
+  ->execute();
+}
+
+/**
+ * Return an object's DSIDs as an array for a checkboxes form element.
+ *
+ * @param FedoraObject $islandora_object
+ *   Islandora object.
+ *
+ * @return array
+ *   Associative array such as that obtained from drupal_map_assoc().
+ */
+function islandora_ip_embargo_get_public_datastreams_options($islandora_object) {
+  $dsid_options = array();
+
+  foreach ($islandora_object as $datastream) {
+    $dsid = strtoupper($datastream->id);
+    $dsid_options[$dsid] = $dsid;
+  }
+  return $dsid_options;
+}
