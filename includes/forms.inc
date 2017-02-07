@@ -63,6 +63,16 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
       'FF0000'
     ),
   );
+  $form['islandora_ip_embargo_datastreams_allowed'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Exempt datastreams'),
+    '#description' => t('Comma-separated list of datastream IDs to always present, regardless of user status.'),
+    '#required' => FALSE,
+    '#default_value' => variable_get(
+        'islandora_ip_embargo_datastreams_allowed',
+        'TN'
+    ),
+  );
 
   return system_settings_form($form);
 }

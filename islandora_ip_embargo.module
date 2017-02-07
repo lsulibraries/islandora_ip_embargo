@@ -117,9 +117,11 @@ function islandora_ip_embargo_menu() {
  */
 function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datastream, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $datastreams_allowed = array_map('trim', explode(',', variable_get('islandora_ip_embargo_datastreams_allowed', 'TN')));
+
   // If we're looking for a thumbnail let it through.
   $restrict_access = islandora_ip_embargo_restrict_access($islandora_datastream->parent->id);
-  if ($islandora_datastream->id == 'TN' && $restrict_access) {
+  if (in_array($islandora_datastream->id, $datastreams_allowed) && $restrict_access) {
     return TRUE;
   }
   elseif ($restrict_access) {
