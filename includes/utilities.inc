@@ -630,13 +630,21 @@ function islandora_ip_embargo_save_public_datastreams($pid, $dsids) {
   $dsids = implode(',', array_filter(array_values($dsids)));
   $public_dsids = islandora_ip_embargo_get_public_datastreams($pid);
   $op = empty($public_dsids) ? 'insert' : 'update';
-  $fn = "db_$op";
-  $fn('islandora_ip_embargo_embargoes_public_ds')
-  ->fields(array(
-    'dsids' => $dsids,
-    ))
-  ->condition('pid', $pid, '=')
-  ->execute();
+  if (empty($public_dsids) {
+    db_insert('islandora_ip_embargo_embargoes_public_ds')
+    ->fields(array(
+     'dsids' => $dsids,
+     ))
+    ->execute();
+  }
+  else {
+    db_update('islandora_ip_embargo_embargoes_public_ds')
+    ->fields(array(
+      'dsids' => $dsids,
+      ))
+    ->condition('pid', $pid, '=')
+    ->execute();
+  }
 }
 
 /**
