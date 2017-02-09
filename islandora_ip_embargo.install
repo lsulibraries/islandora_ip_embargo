@@ -163,16 +163,6 @@ function islandora_ip_embargo_update_7100() {
  * Implements hook_update_N().
  */
 function islandora_ip_embargo_update_7101() {
-  $schema = islandora_ip_embargo_schema();
-  if (!db_table_exists('islandora_ip_embargo_embargoes_public_ds')) {
-    db_create_table('islandora_ip_embargo_embargoes_public_ds', $schema['islandora_ip_embargo_embargoes_public_ds']);
-  }
-}
-
-/**
- * Implements hook_update_N().
- */
-function islandora_ip_embargo_update_7102() {
   $new_field = array(
     'type' => 'varchar',
     'not null' => FALSE,
