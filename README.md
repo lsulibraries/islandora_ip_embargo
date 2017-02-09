@@ -37,7 +37,7 @@ Permissions are granted per role through the Islandora People/Permissions interf
 ADMIN PANEL
 -----------
 
-Roles with "[which permission]" can access the admin panel at http://yoursite.edu/admin/islandora/tools/ip_embargo .  
+Roles with "Administer embargoes" can access the admin panel at http://yoursite.edu/admin/islandora/tools/ip_embargo .
 
 Here one can create new "Network Address Lists", which define what IP ranges for allowing embargo.  A list may hold several IP ranges.  All lists are available sitewide to every object.  Each embargoed item may be assigned to only one list, however.
 
@@ -46,7 +46,7 @@ The "Islandora IP Embargo Settings" tab holds customizations.  Important to note
 OBJECT VIEW
 -------------
 
-Roles with "[which permission]" see an "IP Embargo" tab above an Islandora object.  
+Roles with "Control embargoes" see an "IP Embargo" tab above an Islandora object.
 
 Within this tab, you may specify one embargo list (a list of IP ranges created in the admin panel) to the object.  Setting the embargo list to None removes any embargo from the item.  An expiration date (or "Never Expire") is setable, as well as overriding which datastreams to exclude from the embargo.  In some cases, you may intend for no datastreams to bypass the embargo, while in others you may wish to make not only the thumbnail (TN) but also the metadata available to everyone regardless of embargo.  
 
