@@ -122,14 +122,15 @@ function islandora_ip_embargo_menu() {
  */
 function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datastream, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  $datastreams_allowed = islandora_ip_embargo_get_public_datastreams($islandora_datastream->parent->id);
-
-  // If we're looking for a thumbnail let it through.
-  $restrict_access = islandora_ip_embargo_restrict_access($islandora_datastream->parent->id);
-  if ($islandora_datastream->id == 'TN' && $restrict_access && empty($datastreams_allowed)) {
-    return TRUE;
+  $ancestor_or_self = nearest_ancestor_with_embargo(islandora_object_load($islandora_datastream->parent->id));
+  // TODO: refactor islandora_ip_embargo_get_public_datastreams()
+  $datastreams_allowed = islandora_ip_embargo_get_public_datastreams($ancestor_or_self->id);
+  if (in_array('None', $datastreams_allowed)) {
+    return FALSE;
   }
-  elseif (in_array($islandora_datastream->id, $datastreams_allowed) && $restrict_access && user_access(ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS)) {
+  // If we're looking for a thumbnail let it through.
+  $restrict_access = islandora_ip_embargo_restrict_access($ancestor_or_self->id);
+  if (in_array($islandora_datastream->id, $datastreams_allowed) && $restrict_access) {
     return TRUE;
   }
   elseif ($restrict_access) {
@@ -147,10 +148,12 @@ function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datast
  */
 function islandora_ip_embargo_islandora_object_access($op, $islandora_object, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $islandora_object = nearest_ancestor_with_embargo($islandora_object);
   // Handle an embargo.
   if (islandora_ip_embargo_restrict_access($islandora_object->id) && !user_access(ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES)) {
     // Before redirect, check if this item has a soft embargo.
     $public_dsids = islandora_ip_embargo_get_public_datastreams($islandora_object->id);
+
     if (!empty($public_dsids) && user_access(ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS)) {
       return NULL;
     }
@@ -218,9 +221,9 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
       $image_path_parts[$size_of_image_path - 3] == 'datastream') {
 
     $pid = urldecode($image_path_parts[$size_of_image_path - 4]);
-    $embargo_result = islandora_ip_embargo_get_embargo($pid);
+    $embargo_result = islandora_ip_embargo_get_embargo(nearest_ancestor_with_embargo(islandora_object_load($pid)));
 
-    if ($embargo_result->rowCount()) {
+    if ($embargo_result->rowCount() && $embargo_result->fetchObject()->lid != 0) { // TODO helper fn instead of this long boolean 
       drupal_add_js(drupal_get_path('module', 'islandora_ip_embargo') . '/js/embargoed_images.js');
       drupal_add_js(array('islandora_ip_embargo' => array('text' => $text, 'color' => $color)), array('type' => 'setting'));
       if (isset($variables['#attributes']['class'])) {
