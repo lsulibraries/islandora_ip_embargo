@@ -91,6 +91,12 @@ function islandora_ip_embargo_schema() {
         'default' => 0,
         'description' => '0 if the event has not been triggered 1 if it has been.',
       ),
+      'public_dsids' => array(
+        'type' => 'varchar',
+        'not null' => FALSE,
+        'length' => 100,
+        'description' => 'comma-separated list of datastream IDs to be made accessible via permission.',
+      ),
     ),
     'foreign keys' => array(
       'list' => array(
@@ -100,33 +106,7 @@ function islandora_ip_embargo_schema() {
     ),
     'primary key' => array('pid'),
   );
-  $schema['islandora_ip_embargo_embargoes_public_ds'] = array(
-    'description' => 'Table that stores information on datastreams that should be public for embargoed objects.',
-    'fields' => array(
-      'pid' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'description' => 'The PID of the object being embargoed.',
-      ),
-      'dsids' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'description' => "Comma-separated list of DSIDs to allow for this PID.",
-      ),
-    ),
-    'foreign keys' => array(
-      'list' => array(
-        'table' => 'islandora_ip_embargo_lists',
-        'columns' => array('lid' => 'lid'),
-      ),
-      'objectid' => array(
-        'table' => 'islandora_ip_embargo_embargoes',
-        'columns' => array('pid' => 'pid'),
-      ),
-    ),
-    'primary key' => array('pid'),
-  );
+
   return $schema;
 }
 
