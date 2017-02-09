@@ -221,9 +221,9 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
       $image_path_parts[$size_of_image_path - 3] == 'datastream') {
 
     $pid = urldecode($image_path_parts[$size_of_image_path - 4]);
-    $embargo_result = islandora_ip_embargo_get_embargo($pid);
+    $embargo_result = islandora_ip_embargo_get_embargo(nearest_ancestor_with_embargo(islandora_object_load($pid)));
 
-    if ($embargo_result->rowCount()) {
+    if ($embargo_result->rowCount() && $embargo_result->fetchObject()->lid != 0) { // TODO helper fn instead of this long boolean 
       drupal_add_js(drupal_get_path('module', 'islandora_ip_embargo') . '/js/embargoed_images.js');
       drupal_add_js(array('islandora_ip_embargo' => array('text' => $text, 'color' => $color)), array('type' => 'setting'));
       if (isset($variables['#attributes']['class'])) {
