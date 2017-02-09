@@ -22,6 +22,14 @@ A Drupal based approach to embargoing content based on IP ranges.
 This module is not integrated with the Islandora Embargo module.
 This module breaks islandora_xml_site_map with its redirects. 
 
+EMBARGO INHERITANCE
+-------------------
+
+By taking advantage of RELS-EXT, an embargo set at the collection or compound 
+object level applies to its members or constituents until overridden at a lower
+level. In a collection with an embargo set, setting an member object's embargo 
+list to '' removes the embargo for that item by creating a local record.
+
 CONFIGURATION
 -------------
 

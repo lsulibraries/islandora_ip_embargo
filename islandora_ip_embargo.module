@@ -117,8 +117,11 @@ function islandora_ip_embargo_menu() {
  */
 function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datastream, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+
+  $embargoed_object = islandora_ip_embarga_nearest_embargo(islandora_object_load($islandora_datastream->parent->id));
+
   // If we're looking for a thumbnail let it through.
-  $restrict_access = islandora_ip_embargo_restrict_access($islandora_datastream->parent->id);
+  $restrict_access = islandora_ip_embargo_restrict_access($embargoed_object->id);
   if ($islandora_datastream->id == 'TN' && $restrict_access) {
     return TRUE;
   }
@@ -137,12 +140,14 @@ function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datast
  */
 function islandora_ip_embargo_islandora_object_access($op, $islandora_object, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $embargoed_object = islandora_ip_embarga_nearest_embargo($islandora_object);
   // Handle an embargo.
-  if (islandora_ip_embargo_restrict_access($islandora_object->id) && !user_access(ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES)) {
+  if (islandora_ip_embargo_restrict_access($embargoed_object->id) && !user_access(ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES)) {
+
     // If there is a redirect configured then use it. If not let Drupal do it.
     $redirect_url = variable_get('islandora_ip_embargo_embargoed_redirect', '');
     if ($redirect_url) {
-      if (strpos(current_path(), "islandora/object/{$islandora_object->id}") !== FALSE && strpos(current_path(), '/datastream/TN') === FALSE) {
+      if (strpos(current_path(), "islandora/object/{$embargoed_object->id}") !== FALSE && strpos(current_path(), '/datastream/TN') === FALSE) {
         if (variable_get('islandora_ip_embargo_embargoed_redirect_append_url', 0)) {
           global $base_url;
           $redirect_target = $redirect_url . $base_url . '/' . current_path();
@@ -202,9 +207,9 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
       $image_path_parts[$size_of_image_path - 3] == 'datastream') {
 
     $pid = urldecode($image_path_parts[$size_of_image_path - 4]);
-    $embargo_result = islandora_ip_embargo_get_embargo($pid);
+    $embargo_result = islandora_ip_embargo_get_embargo(islandora_ip_embarga_nearest_embargo(islandora_object_load($pid)));
 
-    if ($embargo_result->rowCount()) {
+    if ($embargo_result->rowCount() && $embargo_result->fetchObject()->lid != 0) {
       drupal_add_js(drupal_get_path('module', 'islandora_ip_embargo') . '/js/embargoed_images.js');
       drupal_add_js(array('islandora_ip_embargo' => array('text' => $text, 'color' => $color)), array('type' => 'setting'));
       if (isset($variables['#attributes']['class'])) {
