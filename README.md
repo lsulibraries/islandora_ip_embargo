@@ -50,7 +50,7 @@ Roles with "[which permission]" see an "IP Embargo" tab above an Islandora objec
 
 Within this tab, you may specify one embargo list (a list of IP ranges created in the admin panel) to the object.  Setting the embargo list to None removes any embargo from the item.  An expiration date (or "Never Expire") is setable, as well as overriding which datastreams to exclude from the embargo.  In some cases, you may intend for no datastreams to bypass the embargo, while in others you may wish to make not only the thumbnail (TN) but also the metadata available to everyone regardless of embargo.  
 
-Settings inherit down from parent to child objects on first assignment.  If you apply an embargo to a parent compound object, it will apply the same embargo to each of its children.  If you apply an embargo to a collection, it will apply that embargo to every object in that collection (compound or simple).    
+Settings inherit to all of an object's child objects on first assignment.  If you apply an embargo to a parent compound object, it will apply the same embargo to each of its children.  If you apply an embargo to a collection, it will apply that embargo to every object in that collection (compound or simple).  The current inheritance for the object is displayed in the text "Inherited from ..."
 
 CLEAN UP
 -------------
