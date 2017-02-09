@@ -540,6 +540,9 @@ function islandora_ip_embargo_pid_or_pids() {
 function islandora_ip_embargo_make_embargo_from_params($params) {
   $pid = $params['pid'];
   $lid = islandora_ip_embargo_get_list_object_by('name', $params['list']);
+  if ($lid == NULL) {
+    $lid = 0;
+  }
   $dsids = $params['public_dsids'];
 
   // Get time into a string for logging, retain timestamp for CRUD.
