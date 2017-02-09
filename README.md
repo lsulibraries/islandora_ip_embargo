@@ -17,7 +17,7 @@ CONTENTS OF THIS FILE
  	* Permissions
  	* Admin panel
  	* Object view 	
- * Configuration
+ * Clean up
  * Command line interface
 
 SUMMARY
@@ -52,7 +52,7 @@ Within this tab, you may specify one embargo list (a list of IP ranges created i
 
 Settings inherit down from parent to child objects on first assignment.  If you apply an embargo to a parent compound object, it will apply the same embargo to each of its children.  If you apply an embargo to a collection, it will apply that embargo to every object in that collection (compound or simple).    
 
-CONFIGURATION
+CLEAN UP
 -------------
 
 Drupal cron should be configured to run once a day to clean out expired
