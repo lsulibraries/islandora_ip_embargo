@@ -649,17 +649,6 @@ function islandora_ip_embargo_get_public_datastreams_options($islandora_object) 
   return $dsid_options;
 }
 
-/**
- * 
- * @param type $pid
- */
-function islandora_ip_embargo_is_public_ds($pid) {
-  $globally_set = variable_get('islandora_ip_embargo_global_public_datastreams', array('TN'));
-  $this_item    = islandora_ip_embargo_get_public_datastreams($pid);
-  return true;
-}
-
-
 function nearest_ancestor_with_embargo($islandora_object) {
   $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
 
