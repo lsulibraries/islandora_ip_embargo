@@ -632,45 +632,6 @@ function islandora_ip_embargo_get_public_datastreams_records($pid) {
 }
 
 /**
- * Insert new or update existing db record.
- *
- * @param string $pid
- *   Islandora PID
- *
- * @param array $form_dsids
- *   Array representing the checked items from a checkboxes form element.
- */
-function islandora_ip_embargo_save_public_datastreams($pid, $form_dsids) {
-  $form_dsids = implode(',', array_filter(array_values($form_dsids)));
-  $defaults   = implode(',',
-      islandora_ip_embargo_get_public_datastreams(
-        nearest_ancestor_with_embargo(
-            islandora_object_load($pid)
-          )
-        )
-      );
-  if($defaults !== $form_dsids){
-    $record_exists = islandora_ip_embargo_get_public_datastreams_records($pid)->rowCount();
-    if (!$record_exists) {
-      db_insert('islandora_ip_embargo_embargoes_public_ds')
-      ->fields(array(
-       'dsids' => $form_dsids,
-       'pid'   => $pid,
-       ))
-      ->execute();
-    }
-    else {
-      db_update('islandora_ip_embargo_embargoes_public_ds')
-      ->fields(array(
-        'dsids' => $form_dsids,
-        ))
-      ->condition('pid', $pid, '=')
-      ->execute();
-    }
-  }
-}
-
-/**
  * Return an object's DSIDs as an array for a checkboxes form element.
  *
  * @param FedoraObject $islandora_object
