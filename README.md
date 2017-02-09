@@ -77,22 +77,22 @@ To add a network range to a list:
 
 - islandora-ip-embargo-addRange (iipeadd)
 
-  `drush iipeadd --list my_ip_list --low nnn.nn.nn.nn --high nnn.nn.nn.nn`
+  `drush iipeadd --list=my_ip_list --low=nnn.nn.nn.nn --high=nnn.nn.nn.nn`
 
 
 To set or remove an embargo from an item or items (note that these commands take either a single PID or file containing comma-separated PIDs):
 
 - islandora-ip-embargo-set-embargo (iipese)
 
-  `drush iipese --list iplist_a --pid namespace:pid --expiry yyyy-mm-dd --public_dsids TN,RELS-EXT,MODS,DC`
+  `drush iipese --list=iplist_a --pid=namespace:pid --expiry=yyyy-mm-dd --public_dsids=TN,RELS-EXT,MODS,DC`
 
-  `drush iipese --list iplist_a --pidsfile /path/to/myListOfPIDs.txt --expiry yyyy-mm-dd --public_dsids TN,RELS-EXT,MODS,DC`
+  `drush iipese --list=iplist_a --pidsfile=/path/to/myListOfPIDs.txt --expiry=yyyy-mm-dd --public_dsids=TN,RELS-EXT,MODS,DC`
 
 - islandora-ip-embargo-remove-embargo
 
-  `drush iipere --pid namespace:pid`
+  `drush iipere --pid=namespace:pid`
 
-  `drush iipere --pidsfile /path/to/myListOfPIDs.txt`
+  `drush iipere --pidsfile=/path/to/myListOfPIDs.txt`
 
 NOTES
 ---------
