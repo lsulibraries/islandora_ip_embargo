@@ -80,29 +80,6 @@ function islandora_ip_embargo_drush_command() {
       ),
     ),
   );
-  $items['islandora-ip-embargo-public-dsids'] = array(
-    'description' => dt('Set public DSIDs for a single pid or for many (using the pidsfile option).'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN,
-    'drupal dependencies' => array(
-      'islandora',
-      'islandora_ip_embargo',
-    ),
-    'aliases' => array('iipese'),
-    'options' => array(
-      'pidsfile' => array(
-        'description' => dt('File containing a comma-separated string of pids'),
-        'required' => FALSE,
-      ),
-      'pid' => array(
-        'description' => 'Islandora pid to embargo.',
-        'required' => FALSE,
-      ),
-      'public_dsids' => array(
-        'description' => dt("Comma-separated list of DSIDs to set public. Use value 'delete' to rescind public access to all datastreams."),
-        'required' => TRUE,
-      ),
-    ),
-  );
   return $items;
 }
 
