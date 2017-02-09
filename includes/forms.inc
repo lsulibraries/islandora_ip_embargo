@@ -479,6 +479,11 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
 
   $policy_source = $islandora_object->id == $nearest_ancestor->id ? 'local' : $nearest_ancestor->id;
   $policy_source_text = $policy_source == 'local' ? "Local policy" : "Inherited from $policy_source.";
+
+  if ($policy_source === 'local') {
+    $options['Inherit'] = 'Inherit';
+  }
+
   $form['policy_source'] = array(
     '#type' => 'hidden',
     '#value' => $policy_source,
@@ -545,6 +550,10 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
  */
 function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  if ($form_state['values']['lists'] === 'Inherit') {
+    islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
+    return $form;
+  }
   $expiry = NULL;
   if (!$form_state['values']['never_expire']) {
     $expiry = mktime(
