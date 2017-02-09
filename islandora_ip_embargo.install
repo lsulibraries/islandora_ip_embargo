@@ -168,3 +168,16 @@ function islandora_ip_embargo_update_7101() {
     db_create_table('islandora_ip_embargo_embargoes_public_ds', $schema['islandora_ip_embargo_embargoes_public_ds']);
   }
 }
+
+/**
+ * Implements hook_update_N().
+ */
+function islandora_ip_embargo_update_7102() {
+  $new_field = array(
+    'type' => 'varchar',
+    'not null' => FALSE,
+    'length' => 100,
+    'description' => 'comma-separated list of datastream IDs to be made accessible via permission.',
+  );
+  db_add_field('islandora_ip_embargo_embargoes', 'public_dsids', $new_field);
+}

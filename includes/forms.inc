@@ -74,6 +74,18 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
         'islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1'
     ),
   );
+  $form['islandora_ip_embargo_global_public_datastreams'] = array(
+    '#type' => 'checkboxes',
+    '#title' => 'Public Datastreams',
+    '#description' => 'Checked datastreams will be visible to users with "View public datastreams" permission, regardless of the embargo.',
+    '#options' => array(
+      'MODS'   => 'MODS',
+      'DC'     => 'DC',
+      'TECHMD' => 'TECHMD',
+      'TN'     => 'TN',
+    ),
+    '#default_value' => variable_get('islandora_ip_embargo_global_public_datastreams', array('TN')),
+  );
 
   return system_settings_form($form);
 }
@@ -456,6 +468,7 @@ function islandora_ip_embargo_add_range_form_submit($form, &$form_state) {
  */
 function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandora_object) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $nearest_ancestor = nearest_ancestor_with_embargo($islandora_object);
   $form_state['storage']['islandroa_ip_embargo']['update'] = FALSE;
   $form_state['storage']['islandroa_ip_embargo']['pid'] = $islandora_object->id;
   $list_results = islandora_ip_embargo_get_lists();
@@ -485,10 +498,10 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     '#title' => 'Public Datastreams',
     '#description' => 'Checked datastreams will be visible to users with "View public datastreams" permission, regardless of the embargo.',
     '#options' => islandora_ip_embargo_get_public_datastreams_options($islandora_object),
-    '#default_value' => islandora_ip_embargo_get_public_datastreams($islandora_object->id),
+    '#default_value' => islandora_ip_embargo_get_public_datastreams($nearest_ancestor->id),
   );
 
-  $embargo_result = islandora_ip_embargo_get_embargo($islandora_object->id);
+  $embargo_result = islandora_ip_embargo_get_embargo($nearest_ancestor->id);
   if ($embargo_result->rowCount()) {
     $embargo_info = $embargo_result->fetchObject();
     $form_state['storage']['islandroa_ip_embargo']['update'] = TRUE;
