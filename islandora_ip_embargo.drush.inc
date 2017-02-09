@@ -178,10 +178,12 @@ function drush_islandora_ip_embargo_set_embargo() {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $pids = islandora_ip_embargo_pid_or_pids();
   $expiry = drush_get_option('expiry', NULL);
-  $lists = explode(',', drush_get_option('lists'));
+  $lists = explode(',', drush_get_option('lists')); //TODO make this singular.
+  $dsids = array_map('trim', explode(',', drush_get_option('public_dsids', NULL)));
+
   $params = array(
     'expiry' => $expiry,
-    'public_dsids' => drush_get_option('public_dsids', NULL),
+    'public_dsids' => implode(',', $dsids),
   );
 
   foreach ($lists as $list) {
@@ -201,28 +203,8 @@ function drush_islandora_ip_embargo_remove_embargo() {
   $pids = islandora_ip_embargo_pid_or_pids();
   foreach ($pids as $pid) {
     islandora_ip_embargo_remove_embargo($pid);
-    islandora_ip_embargo_remove_public_datastreams($pid);
     drupal_set_message(t(
             "Embargo(es) removed for pid %pid", array('%pid' => $pid))
     );
-  }
-}
-
-/**
- * Set or unset a db record for public datastreams.
- */
-function drush_islandora_ip_embargo_public_dsids() {
-  module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  $public_dsids = drush_get_option('public_dsids');
-  $pids = islandora_ip_embargo_pid_or_pids();
-
-  foreach ($pids as $pid) {
-    if ($public_dsids === 'delete') {
-      islandora_ip_embargo_remove_public_datastreams($pid);
-    }
-    else {
-      $dsids = array_map('trim', explode(',', $public_dsids));
-      islandora_ip_embargo_save_public_datastreams($pid, $dsids);
-    }
   }
 }

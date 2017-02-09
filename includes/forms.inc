@@ -472,11 +472,20 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
   $form_state['storage']['islandroa_ip_embargo']['update'] = FALSE;
   $form_state['storage']['islandroa_ip_embargo']['pid'] = $islandora_object->id;
   $list_results = islandora_ip_embargo_get_lists();
-  $options = array('none' => NULL);
+  $options = array(0 => NULL);
   while ($data = $list_results->fetchObject()) {
     $options[$data->lid] = $data->name;
   }
 
+  $policy_source = $islandora_object->id == $nearest_ancestor->id ? 'local' : $nearest_ancestor->id;
+  $policy_source_text = $policy_source == 'local' ? "Local policy" : "Inherited from $policy_source.";
+  $form['policy_source'] = array(
+    '#type' => 'hidden',
+    '#value' => $policy_source,
+  );
+  $form['policy_source_text'] = array(
+    '#markup' => "<span>$policy_source_text</span>",
+  );
   $form['lists'] = array(
     '#type' => 'select',
     '#title' => 'IP address range list',
@@ -547,29 +556,23 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
       $form_state['values']['expiry_date']['year']
     );
   }
-  if ($form_state['storage']['islandroa_ip_embargo']['update']) {
-    if ($form_state['values']['lists'] != 'none') {
+  if ($form_state['storage']['islandroa_ip_embargo']['update'] && $form_state['values']['policy_source'] == 'local') {
       islandora_ip_embargo_update_embargo(
         $form_state['storage']['islandroa_ip_embargo']['pid'],
         $form_state['values']['lists'],
-        $expiry
+        $expiry,
+        $form_dsids = implode(',', array_filter(array_values($form_state['values']['public_datastreams'])))
       );
-    }
-    else {
-      islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
-    }
   }
   else {
     islandora_ip_embargo_set_embargo(
       $form_state['storage']['islandroa_ip_embargo']['pid'],
       $form_state['values']['lists'],
-      $expiry
+      $expiry,
+      $form_dsids = implode(',', array_filter(array_values($form_state['values']['public_datastreams'])))
     );
   }
-  islandora_ip_embargo_save_public_datastreams(
-      $form_state['storage']['islandroa_ip_embargo']['pid'],
-      $form_state['values']['public_datastreams']
-      );
+
   return $form;
 }
 
