@@ -708,7 +708,8 @@ function nearest_ancestor_with_embargo($islandora_object) {
   }
   else {
 
-    $ancestor_rels = array('isMemberOfCollection', 'isConstituentOf');
+    //TODO refactor to look specifically for compound first, then collection...
+    $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
     $relationships = $islandora_object->relationships->get();
 
     foreach ($relationships as $rel) {
