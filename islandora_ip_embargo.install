@@ -142,7 +142,7 @@ function islandora_ip_embargo_update_7100() {
 /**
  * Implements hook_update_N().
  */
-function islandora_ip_embargo_update_7101() {
+function islandora_ip_embargo_update_7102() {
   $new_field = array(
     'type' => 'varchar',
     'not null' => FALSE,
