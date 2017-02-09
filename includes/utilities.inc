@@ -662,20 +662,21 @@ function islandora_ip_embargo_is_public_ds($pid) {
 
 function nearest_ancestor_with_embargo($islandora_object) {
   $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
-  //  $dsids   = islandora_ip_embargo_get_public_datastreams_records($islandora_object->id);
 
   if ($embargo->rowCount()) {
     return $islandora_object;
   }
   else {
 
-    //TODO refactor to look specifically for compound first, then collection...
     $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
     $relationships = $islandora_object->relationships->get();
 
-    foreach ($relationships as $rel) {
-      if (in_array($rel['predicate']['value'], $ancestor_rels)) {
-        return nearest_ancestor_with_embargo(islandora_object_load($rel['object']['value']));
+    foreach ($ancestor_rels as $preferred_link) {
+      foreach ($relationships as $rel) {
+
+          if ($rel['predicate']['value'] === $preferred_link) {
+          return nearest_ancestor_with_embargo(islandora_object_load($rel['object']['value']));
+        }
       }
     }
     return $islandora_object;
