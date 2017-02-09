@@ -66,8 +66,8 @@ function islandora_ip_embargo_drush_command() {
         'description' => 'Islandora pid to embargo.',
         'required' => FALSE,
       ),
-      'lists' => array(
-        'description' => dt('comma-separated names of network lists to set.'),
+      'list' => array(
+        'description' => dt('The network list to set.'),
         'required' => TRUE,
       ),
       'expiry' => array(
@@ -155,7 +155,7 @@ function drush_islandora_ip_embargo_set_embargo() {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $pids = islandora_ip_embargo_pid_or_pids();
   $expiry = drush_get_option('expiry', NULL);
-  $lists = explode(',', drush_get_option('lists')); //TODO make this singular.
+  $list = drush_get_option('list');
   $dsids = array_map('trim', explode(',', drush_get_option('public_dsids', NULL)));
 
   $params = array(
@@ -163,12 +163,10 @@ function drush_islandora_ip_embargo_set_embargo() {
     'public_dsids' => implode(',', $dsids),
   );
 
-  foreach ($lists as $list) {
-    foreach ($pids as $pid) {
-      $params['pid'] = $pid;
-      $params['list'] = $list;
-      islandora_ip_embargo_make_embargo_from_params($params);
-    }
+  foreach ($pids as $pid) {
+    $params['pid'] = $pid;
+    $params['list'] = $list;
+    islandora_ip_embargo_make_embargo_from_params($params);
   }
 }
 
