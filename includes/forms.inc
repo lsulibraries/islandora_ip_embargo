@@ -456,14 +456,29 @@ function islandora_ip_embargo_add_range_form_submit($form, &$form_state) {
  */
 function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandora_object) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $embargoed_object = islandora_ip_embarga_nearest_embargo($islandora_object);
   $form_state['storage']['islandroa_ip_embargo']['update'] = FALSE;
   $form_state['storage']['islandroa_ip_embargo']['pid'] = $islandora_object->id;
   $list_results = islandora_ip_embargo_get_lists();
-  $options = array('none' => NULL);
+  $options = array(0 => NULL);
   while ($data = $list_results->fetchObject()) {
     $options[$data->lid] = $data->name;
   }
 
+  $policy_source = $islandora_object->id == $embargoed_object->id ? 'local' : $embargoed_object->id;
+  $policy_source_text = $policy_source == 'local' ? "Local policy" : "Inherited from $policy_source.";
+
+  if ($policy_source === 'local') {
+    $options['Inherit'] = 'Inherit';
+  }
+
+  $form['policy_source'] = array(
+    '#type' => 'hidden',
+    '#value' => $policy_source,
+  );
+  $form['policy_source_text'] = array(
+    '#markup' => "<span id='islandora-ip-embargo-policy-source'>$policy_source_text</span>",
+  );
   $form['lists'] = array(
     '#type' => 'select',
     '#title' => 'IP address range list',
@@ -481,7 +496,7 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     '#description' => t('This embargo should never expire, overrides the Expiry date field.'),
   );
 
-  $embargo_result = islandora_ip_embargo_get_embargo($islandora_object->id);
+  $embargo_result = islandora_ip_embargo_get_embargo($embargoed_object->id);
   if ($embargo_result->rowCount()) {
     $embargo_info = $embargo_result->fetchObject();
     $form_state['storage']['islandroa_ip_embargo']['update'] = TRUE;
@@ -516,6 +531,10 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
  */
 function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  if ($form_state['values']['lists'] === 'Inherit') {
+    islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
+    return $form;
+  }
   $expiry = NULL;
   if (!$form_state['values']['never_expire']) {
     $expiry = mktime(
@@ -527,17 +546,12 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
       $form_state['values']['expiry_date']['year']
     );
   }
-  if ($form_state['storage']['islandroa_ip_embargo']['update']) {
-    if ($form_state['values']['lists'] != 'none') {
-      islandora_ip_embargo_update_embargo(
+  if ($form_state['storage']['islandroa_ip_embargo']['update'] && $form_state['values']['policy_source'] == 'local') {
+    islandora_ip_embargo_update_embargo(
         $form_state['storage']['islandroa_ip_embargo']['pid'],
         $form_state['values']['lists'],
         $expiry
       );
-    }
-    else {
-      islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
-    }
   }
   else {
     islandora_ip_embargo_set_embargo(
@@ -546,6 +560,7 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
       $expiry
     );
   }
+
   return $form;
 }
 

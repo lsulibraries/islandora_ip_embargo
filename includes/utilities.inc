@@ -190,6 +190,7 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
     'pid' => $islandora_object_id,
     'lid' => $list_id,
     'expiry' => $expiry,
+    'public_dsids' => $public_dsids,
   ))
   ->condition('pid', $islandora_object_id)
   ->execute();
@@ -211,6 +212,7 @@ function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expir
     'pid' => $islandora_object_id,
     'lid' => $list_id,
     'expiry' => $expiry,
+    'public_dsids' => $public_dsids,
   ))
   ->execute();
 }
@@ -416,4 +418,26 @@ function islandora_ip_embargo_restrict_access($pid) {
     $open_access = TRUE;
   }
   return !$open_access;
+}
+
+function islandora_ip_embarga_nearest_embargo($islandora_object) {
+  $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
+
+  if ($embargo->rowCount()) {
+    return $islandora_object;
+  }
+  else {
+
+    $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
+    $relationships = $islandora_object->relationships->get();
+
+    foreach ($ancestor_rels as $preferred_link) {
+      foreach ($relationships as $rel) {
+          if ($rel['predicate']['value'] === $preferred_link) {
+          return islandora_ip_embarga_nearest_embargo(islandora_object_load($rel['object']['value']));
+        }
+      }
+    }
+    return $islandora_object;
+  }
 }
