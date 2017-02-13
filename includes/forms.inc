@@ -74,6 +74,18 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
         'islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1'
     ),
   );
+  $form['islandora_ip_embargo_global_public_datastreams'] = array(
+    '#type' => 'checkboxes',
+    '#title' => 'Public Datastreams',
+    '#description' => 'Checked datastreams will be visible to users with "View public datastreams" permission, regardless of the embargo.',
+    '#options' => array(
+      'MODS'   => 'MODS',
+      'DC'     => 'DC',
+      'TECHMD' => 'TECHMD',
+      'TN'     => 'TN',
+    ),
+    '#default_value' => variable_get('islandora_ip_embargo_global_public_datastreams', array('TN')),
+  );
 
   return system_settings_form($form);
 }
@@ -495,6 +507,13 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     '#title' => 'Never expire',
     '#description' => t('This embargo should never expire, overrides the Expiry date field.'),
   );
+  $form['public_datastreams'] = array(
+    '#type' => 'checkboxes',
+    '#title' => 'Public Datastreams',
+    '#description' => 'Checked datastreams will be visible to users with "View public datastreams" permission, regardless of the embargo.',
+    '#options' => islandora_ip_embargo_get_object_datastreams($islandora_object),
+    '#default_value' => islandora_ip_embargo_get_public_datastreams($embargoed_object->id),
+  );
 
   $embargo_result = islandora_ip_embargo_get_embargo($embargoed_object->id);
   if ($embargo_result->rowCount()) {
@@ -550,14 +569,16 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
     islandora_ip_embargo_update_embargo(
         $form_state['storage']['islandroa_ip_embargo']['pid'],
         $form_state['values']['lists'],
-        $expiry
+        $expiry,
+        $form_dsids = implode(',', array_filter(array_values($form_state['values']['public_datastreams'])))
       );
   }
   else {
     islandora_ip_embargo_set_embargo(
       $form_state['storage']['islandroa_ip_embargo']['pid'],
       $form_state['values']['lists'],
-      $expiry
+      $expiry,
+      $form_dsids = implode(',', array_filter(array_values($form_state['values']['public_datastreams'])))
     );
   }
 

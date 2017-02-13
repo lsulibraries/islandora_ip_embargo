@@ -184,7 +184,7 @@ function islandora_ip_embargo_get_embargos($list_identifier) {
  * @param int $expiry
  *   The timestamp to stop the embargo at.
  */
-function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $expiry = NULL) {
+function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
   db_update('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
@@ -206,7 +206,7 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
  * @param int $expiry
  *   The timestamp to stop the embargo at.
  */
-function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL) {
+function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
   db_insert('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
@@ -420,6 +420,15 @@ function islandora_ip_embargo_restrict_access($pid) {
   return !$open_access;
 }
 
+/**
+ * For a given node, find the nearest ancestor (or self) with an embargo set.
+ * 
+ * @param IslandoraFedoraObject $islandora_object
+ *   Islandora object.
+ *
+ * @return IslandoraFedoraObject
+ *   The nearest embargoed ancestor; or NULL.
+ */
 function islandora_ip_embarga_nearest_embargo($islandora_object) {
   $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
 
@@ -433,11 +442,73 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
 
     foreach ($ancestor_rels as $preferred_link) {
       foreach ($relationships as $rel) {
-          if ($rel['predicate']['value'] === $preferred_link) {
+        if ($rel['predicate']['value'] === $preferred_link) {
           return islandora_ip_embarga_nearest_embargo(islandora_object_load($rel['object']['value']));
         }
       }
     }
     return $islandora_object;
   }
+}
+
+/**
+ * For a given PID, return the array of DSIDs saved as public.
+ *
+ * @param string $pid
+ *   Islandora PID
+ *
+ * @return array
+ *   Simple array with one DSID per element, or empty, if no record exists.
+ */
+function islandora_ip_embargo_get_public_datastreams($pid) {
+  $dsids = array();
+  $records = db_select('islandora_ip_embargo_embargoes', 'd')
+    ->fields('d', array('public_dsids'))
+    ->condition('pid', $pid)
+    ->execute();
+
+  if (!$records->rowCount()) {
+    $dsids = variable_get('islandora_ip_embargo_global_public_datastreams', array('TN'));
+  }
+  else {
+    $dsids = explode(',', $records->fetchField());
+  }
+
+  return $dsids;
+}
+
+/**
+ * Return an object's DSIDs as an array for a checkboxes form element.
+ *
+ * @param FedoraObject $islandora_object
+ *   Islandora object.
+ *
+ * @return array
+ *   Associative array such as that obtained from drupal_map_assoc().
+ */
+function islandora_ip_embargo_get_object_datastreams($islandora_object) {
+
+  foreach ($islandora_object as $datastream) {
+    $dsid = strtoupper($datastream->id);
+    $dsid_options[$dsid] = $dsid;
+  }
+  return $dsid_options;
+}
+
+/**
+ * Check if current path is public datastream.
+ *
+ * @param array $dsids
+ *   array of DSIDs, as returned from _get_public_datastreams.
+ *
+ * @return bool
+ *   Return TRUE if current path matches one of the input DSIDs.
+ */
+function islandora_ip_embargo_requesting_public_dsid(array $dsids) {
+  foreach ($dsids as $dsid) {
+    if (strpos(current_path(), "datastream/$dsid") !== FALSE) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
