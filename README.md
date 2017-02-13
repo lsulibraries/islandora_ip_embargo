@@ -54,3 +54,40 @@ Here, 'public' can be defined by a site administrator by assigning the permissio
 `Access datastreams marked as public`; assigning it to `Anonymous user` means that
 these datastreams are truly public, that they will not be withheld by the 
 mechanisms of this module. Assign to other roles for different behavior.
+
+DRUSH INTERFACE
+---------------------
+
+To see existing IP range lists for a site:
+
+- islandora-ip-embargo-list-lists (iipell)
+
+  `drush iipell`
+
+To add a network range to a list:
+
+- islandora-ip-embargo-addRange (iipeadd)
+
+  `drush iipeadd --list my_ip_list --low nnn.nn.nn.nn --high nnn.nn.nn.nn`
+
+
+To set or remove an embargo from an item or items (note that these commands take either a single PID or file containing comma-separated PIDs):
+
+- islandora-ip-embargo-set-embargo (iipese)
+
+  `drush iipese --list=iplist_a --pid=namespace:pid --expiry=yyyy-mm-dd`
+
+  `drush iipese --list=iplist_a --pidsfile=/path/to/myListOfPIDs.txt`
+
+- islandora-ip-embargo-remove-embargo
+
+  `drush iipere --pid=namespace:pid`
+
+  `drush iipere --pidsfile=/path/to/myListOfPIDs.txt`
+
+NOTES
+---------
+
+A Drupal based approach to embargoing content based on IP ranges.
+This module is not integrated with the Islandora Embargo module.
+This module breaks islandora_xml_site_map with its redirects. 
