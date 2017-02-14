@@ -579,7 +579,7 @@ function islandora_ip_embargo_requesting_public_dsid(array $dsids) {
  * @return NULL|int
  *   UNIX timestamp or NULL.
  */
-function islandora_ip_embargo_parse_expiry($expiry) {
+function islandora_ip_embargo_parse_expiry($expiry = NULL) {
 
   // Set up expiry date from params.
   if ($expiry !== NULL) {
@@ -618,73 +618,5 @@ function islandora_ip_embargo_pid_or_pids() {
   }
   else {
     throw new Exception("Must supply either --pid or --pidsfile.");
-  }
-}
-
-/**
- * Create an embargo based on the input params.
- *
- * @param array $params
- *   key => value for keys (list,exiry,pid)
- *
- * @return NULL
- *   no return
- */
-function islandora_ip_embargo_make_embargo_from_params($params) {
-  $pid = $params['pid'];
-  $lid = islandora_ip_embargo_get_list_object_by('name', $params['list']);
-
-  // Get time into a string for logging, retain timestamp for CRUD.
-  $expiry = islandora_ip_embargo_parse_expiry($params['expiry']);
-  $exptime = $expiry == NULL ? "Never" : strftime('%Y-%m-%d', $expiry);
-
-  // Determine whether an embargo exists already for an object.
-  // What if there is more than one record?
-  $update = islandora_ip_embargo_get_embargo($pid)->fetchObject();
-  if ($update) {
-    if ($update->lid == $lid && $update->expiry == $expiry) {
-      drupal_set_message(t(
-        "No update required for IP range list %list to Islandora object %obj, set to expire %exp",
-          array('%list' => $params['list'], '%obj' => $pid, '%exp' => $exptime))
-      );
-    }
-    else {
-      islandora_ip_embargo_update_embargo($pid, $lid, $expiry);
-      drupal_set_message(
-          t(
-              "Islandora object %obj has IP embargo list %list, set to expire %exp", array(
-                '%list' => $params['list'],
-                '%obj' => $pid,
-                '%exp' => $exptime,
-              )
-          )
-      );
-      watchdog(
-          'islandora_ip_embargo', "Islandora object %obj has IP embargo list %list, set to expire %exp", array(
-            '%list' => $params['list'],
-            '%obj' => $pid,
-            '%exp' => $exptime,
-          ), WATCHDOG_DEBUG
-      );
-    }
-  }
-  else {
-    islandora_ip_embargo_set_embargo($pid, $lid, $expiry);
-    drupal_set_message(
-        t(
-            "Added IP range list %list to Islandora object %obj, set to expire %exp", array(
-              '%list' => $params['list'],
-              '%obj' => $pid,
-              '%exp' => $exptime,
-            )
-        )
-    );
-    watchdog(
-        'islandora_ip_embargo', "Added IP range list %list to Islandora object %obj, set to expire %exp", array(
-          '%list' => $params['list'],
-          '%obj' => $pid,
-          '%exp' => $exptime,
-        ), WATCHDOG_DEBUG
-    );
   }
 }
