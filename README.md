@@ -68,7 +68,7 @@ To add a network range to a list:
 
 - islandora-ip-embargo-addRange (iipeadd)
 
-  `drush iipeadd --list my_ip_list --low nnn.nn.nn.nn --high nnn.nn.nn.nn`
+  `drush iipeadd --list=my_ip_list --low=nnn.nn.nn.nn --high=nnn.nn.nn.nn`
 
 
 To set or remove an embargo from an item or items (note that these commands take either a single PID or file containing comma-separated PIDs):
