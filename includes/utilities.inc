@@ -478,7 +478,11 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
     foreach ($ancestor_rels as $preferred_link) {
       foreach ($relationships as $rel) {
         if ($rel['predicate']['value'] === $preferred_link) {
-          return islandora_ip_embarga_nearest_embargo(islandora_object_load($rel['object']['value']));
+          $ancestor = islandora_object_load($rel['object']['value']);
+          if(!$ancestor) {
+            return $islandora_object;
+          }
+          return islandora_ip_embarga_nearest_embargo($ancestor);
         }
       }
     }
