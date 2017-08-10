@@ -101,7 +101,9 @@ function islandora_ip_embargo_menu() {
       'page arguments' => array('islandora_ip_embargo_object_embargo_form', 2),
       'page callback' => 'drupal_get_form',
       'type' => MENU_LOCAL_TASK,
-      'access arguments' => array(ISLANDORA_IP_EMBARGO_CONTROL_EMBARGOES),
+      'access callback' => 'edit_embargo_for_object',
+      'access arguments' => array(2),
+      //'access arguments' => array(ISLANDORA_IP_EMBARGO_CONTROL_EMBARGOES),
     ),
     'admin/islandora/tools/ip_embargo/manage' => array(
       'title' => 'Manage Embargoed Objects',
@@ -113,6 +115,25 @@ function islandora_ip_embargo_menu() {
       'access arguments' => array(ISLANDORA_IP_EMBARGO_MANAGE_EMBARGOES),
     ),
   );
+}
+
+function edit_embargo_for_object($object) {
+  $hook_result = module_invoke_all('edit_islandora_object_ip_embargo', $object);
+  foreach ($hook_result as $result) {
+    if (!$result) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * Implements hook_edit_islandora_object_ip_embargo().
+ * 
+ * @param type $object
+ */
+function islandora_ip_embargo_edit_islandora_object_ip_embargo($object) {
+  return $object->id != 'islandora:root';
 }
 
 /**
