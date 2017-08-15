@@ -467,7 +467,7 @@ function islandora_ip_embargo_restrict_access($pid) {
 function islandora_ip_embarga_nearest_embargo($islandora_object) {
   $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
 
-  if ($embargo->rowCount()) {
+  if ($embargo->rowCount() || !isset($islandora_object->relationships)) {
     return $islandora_object;
   }
   else {
