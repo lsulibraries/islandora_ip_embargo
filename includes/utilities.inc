@@ -473,14 +473,15 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
   else {
 
     $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
-    try {
-        $relationships = $islandora_object->relationships->get();
-    }
-    catch (Exception $e) {
+    // Try to catch errors of the form `Fatal error: Call to a member function 
+    // get() on a non-object in 
+    // /sites/all/modules/islandora_ip_embargo/includes/utilities.inc on line 477`.
+    if(!$islandora_object->relationships) {
+        $e = new Exception();
         watchdog_exception('bad fedora object', $e, "Relationships not defined for :pid", array(':pid' => $islandora_object->id));
         return $islandora_object;
     }
-
+    $relationships = $islandora_object->relationships->get();
     foreach ($ancestor_rels as $preferred_link) {
       foreach ($relationships as $rel) {
         if ($rel['predicate']['value'] === $preferred_link) {
