@@ -465,6 +465,11 @@ function islandora_ip_embargo_restrict_access($pid) {
  *   The nearest embargoed ancestor; or NULL.
  */
 function islandora_ip_embarga_nearest_embargo($islandora_object) {
+  if(!$islandora_object) {
+    $e = new Exception();
+    watchdog_exception('bad fedora object', $e, "ID not defined for :pid, value :v", array(':pid' => gettype($islandora_object), ':v' => (int)$islandora_object));
+    return $islandora_object;
+  }
   $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
 
   if ($embargo->rowCount()) {

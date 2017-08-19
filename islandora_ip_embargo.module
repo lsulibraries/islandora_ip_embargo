@@ -143,7 +143,17 @@ function islandora_ip_embargo_edit_islandora_object_ip_embargo($object) {
  */
 function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datastream, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  $embargoed_object = islandora_ip_embarga_nearest_embargo(islandora_object_load($islandora_datastream->parent->id));
+  $parent = islandora_object_load($islandora_datastream->parent->id);
+  if(!$parent) {
+    $e = new Exception();
+    watchdog_exception('bad fedora object', $e, "Parent ID not defined for DSID :dsid of :pid, value :v", 
+            array(
+                ':dsid' => $islandora_datastream,
+                ':pid' => gettype($parent),
+                ':v' => (int)$parent)
+            );
+  }
+  $embargoed_object = islandora_ip_embarga_nearest_embargo($parent);
   $restrict_access = islandora_ip_embargo_restrict_access($embargoed_object->id);
   $datastreams_allowed = islandora_ip_embargo_get_public_datastreams($embargoed_object->id);
 
