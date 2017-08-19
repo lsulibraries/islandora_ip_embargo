@@ -250,7 +250,12 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
       $image_path_parts[$size_of_image_path - 3] == 'datastream') {
 
     $pid = urldecode($image_path_parts[$size_of_image_path - 4]);
-    $embargo_result = islandora_ip_embargo_get_embargo(islandora_ip_embarga_nearest_embargo(islandora_object_load($pid)));
+    $islandora_object = islandora_object_load($pid);
+    if(!$islandora_object) {
+        $e = new Exception();
+        watchdog_exception('bad fedora PID', $e, "Failed loading object for PID $pid");
+    }
+    $embargo_result = islandora_ip_embargo_get_embargo(islandora_ip_embarga_nearest_embargo($islandora_object));
 
     if ($embargo_result->rowCount() && $embargo_result->fetchObject()->lid != 0) {
       drupal_add_js(drupal_get_path('module', 'islandora_ip_embargo') . '/js/embargoed_images.js');
