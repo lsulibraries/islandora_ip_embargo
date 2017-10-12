@@ -220,6 +220,8 @@ function islandora_ip_embargo_get_embargos($list_identifier) {
  *   The timestamp to stop the embargo at.
  */
 function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
+  cache_clear_all('islandora_ip_embargo_restrict_access', 'cache');
+  cache_clear_all('islandora_ip_embargo_restricted_datastreams', 'cache');
   db_update('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
@@ -242,6 +244,9 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
  *   The timestamp to stop the embargo at.
  */
 function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
+  cache_clear_all('islandora_ip_embargo_restrict_access', 'cache');
+  cache_clear_all('islandora_ip_embargo_restricted_datastreams', 'cache');
+  cache_clear_all('islandora_ip_embargo_nearest_embargoes', 'cache');
   db_insert('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
@@ -467,7 +472,7 @@ function islandora_ip_embargo_restrict_access($pid) {
   else {
     $open_access = TRUE;
   }
-  $restricted[$pid] = $open_access;
+  $restricted[$pid] = !$open_access;
   cache_set('islandora_ip_embargo_restrict_access', $restricted, 'cache', time() + 3600);
   return !$open_access;
 }
