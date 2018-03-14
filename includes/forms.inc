@@ -429,7 +429,7 @@ function islandora_ip_embargo_add_range_form_validate(array $form, array &$form_
     form_set_error('high_end', t('High end IP is not valid.'));
   }
 
-  if ($comparable_low !== FALSE && $comparable_high !== FALSE && $comparable_low > $comparable_high) {
+  if ($comparable_low !== FALSE && $comparable_high !== FALSE &&  $comparable_low > $comparable_high) {
     form_set_error('', t('IP range is not valid. The low address is greater than the high.'));
   }
 }

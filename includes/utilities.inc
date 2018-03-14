@@ -444,12 +444,6 @@ function islandora_ip_embargo_restrict_access($pid) {
           $open_access = TRUE;
         }
       }
-      global $user;
-      $roles_exempt = explode(',', variable_get('islandora_ip_embargo_roles_exempt', ''));
-      $qualifying_roles = array_intersect($roles_exempt, $user->roles);
-      if (!empty($qualifying_roles)) {
-        $open_access = TRUE;
-      }
     }
     else {
       $open_access = TRUE;
@@ -485,7 +479,7 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
 
     $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
     // Try to catch errors of the form `Fatal error: Call to a member function
-    // get() on a non-object in
+    // get() on a non-object in 
     // /sites/all/modules/islandora_ip_embargo/includes/utilities.inc on line 477`.
     if(!$islandora_object->relationships) {
         $e = new Exception();
@@ -601,7 +595,6 @@ function islandora_ip_embargo_requesting_public_dsid(array $dsids) {
  * @return NULL|int
  *   UNIX timestamp or NULL.
  */
-
 function islandora_ip_embargo_parse_expiry($expiry = NULL) {
 
   // Set up expiry date from params.
