@@ -91,6 +91,12 @@ function islandora_ip_embargo_schema() {
         'default' => 0,
         'description' => '0 if the event has not been triggered 1 if it has been.',
       ),
+      'public_dsids' => array(
+        'type' => 'varchar',
+        'not null' => FALSE,
+        'length' => 100,
+        'description' => 'comma-separated list of datastream IDs to be made accessible via permission.',
+      ),
     ),
     'foreign keys' => array(
       'list' => array(
@@ -131,4 +137,17 @@ function islandora_ip_embargo_update_7100() {
     'description' => '0 if the event has not been triggered 1 if it has been.',
   );
   db_add_field('islandora_ip_embargo_embargoes', 'expiry_event_triggered', $new_field);
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function islandora_ip_embargo_update_7102() {
+  $new_field = array(
+    'type' => 'varchar',
+    'not null' => FALSE,
+    'length' => 100,
+    'description' => 'comma-separated list of datastream IDs to be made accessible via permission.',
+  );
+  db_add_field('islandora_ip_embargo_embargoes', 'public_dsids', $new_field);
 }

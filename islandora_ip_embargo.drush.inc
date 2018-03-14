@@ -66,12 +66,16 @@ function islandora_ip_embargo_drush_command() {
         'description' => 'Islandora pid to embargo.',
         'required' => FALSE,
       ),
-      'lists' => array(
-        'description' => dt('comma-separated names of network lists to set.'),
+      'list' => array(
+        'description' => dt('The network list to set; use the special value "whitelist" to clear an embargo from an object belonging to an embargoed collection.'),
         'required' => TRUE,
       ),
       'expiry' => array(
         'description' => dt("When to expire the embargo."),
+        'required' => FALSE,
+      ),
+      'public_dsids' => array(
+        'description' => dt("comma-separated list of dsids to set public'"),
         'required' => FALSE,
       ),
     ),
@@ -149,16 +153,45 @@ function drush_islandora_ip_embargo_list_lists() {
  */
 function drush_islandora_ip_embargo_set_embargo() {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  $pids = islandora_ip_embargo_pid_or_pids();
-  $expiry = drush_get_option('expiry', NULL);
-  $lists = explode(',', drush_get_option('lists'));
-  $params = array('expiry' => $expiry);
+  $list   = drush_get_option('list');
+  $pids   = islandora_ip_embargo_pid_or_pids();
+  $lid    = $list == 'whitelist' ? 0 : islandora_ip_embargo_get_list_object_by('name', $list);
+  $expiry = islandora_ip_embargo_parse_expiry(drush_get_option('expiry', NULL));
+  $dsids  = implode(',', array_map('trim', explode(',', drush_get_option('public_dsids'))));
 
-  foreach ($lists as $list) {
-    foreach ($pids as $pid) {
-      $params['pid'] = $pid;
-      $params['list'] = $list;
-      islandora_ip_embargo_make_embargo_from_params($params);
+  foreach ($pids as $pid) {
+    $update = islandora_ip_embargo_get_embargo($pid)->fetchObject();
+    if ($update) {
+      if ($update->lid == $lid && $update->expiry == $expiry && $update->public_dsids == $dsids) {
+	drupal_set_message(t(
+          "No update required for IP range list %list to Islandora object %obj, set to expire %exp",
+            array('%list' => $lid, '%obj' => $pid, '%exp' => $exptime))
+        );
+      }
+      else {
+        islandora_ip_embargo_update_embargo($pid, $lid, $expiry, $dsids);
+        drupal_set_message(
+          t(
+              "Islandora object %obj has IP embargo list %list, set to expire %exp", array(
+                '%list' => $lid,
+                '%obj' => $pid,
+                '%exp' => $expiry,
+              )
+          )
+        );
+      }
+    }
+    else {
+      islandora_ip_embargo_set_embargo($pid, $lid, $expiry, $dsids);
+      drupal_set_message(
+          t(
+              "Added IP range list %list to Islandora object %obj, set to expire %exp", array(
+                '%list' => $lid,
+                '%obj' => $pid,
+                '%exp' => $expiry,
+              )
+          )
+      );
     }
   }
 }

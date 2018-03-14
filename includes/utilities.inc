@@ -219,12 +219,13 @@ function islandora_ip_embargo_get_embargos($list_identifier) {
  * @param int $expiry
  *   The timestamp to stop the embargo at.
  */
-function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $expiry = NULL) {
+function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
   db_update('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
     'lid' => $list_id,
     'expiry' => $expiry,
+    'public_dsids' => $public_dsids,
   ))
   ->condition('pid', $islandora_object_id)
   ->execute();
@@ -240,12 +241,13 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
  * @param int $expiry
  *   The timestamp to stop the embargo at.
  */
-function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL) {
+function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
   db_insert('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
     'lid' => $list_id,
     'expiry' => $expiry,
+    'public_dsids' => $public_dsids,
   ))
   ->execute();
 }
@@ -460,6 +462,53 @@ function islandora_ip_embargo_restrict_access($pid) {
 }
 
 /**
+ * For a given node, find the nearest ancestor (or self) with an embargo set.
+ *
+ * @param IslandoraFedoraObject $islandora_object
+ *   Islandora object.
+ *
+ * @return IslandoraFedoraObject
+ *   The nearest embargoed ancestor; or NULL.
+ */
+function islandora_ip_embarga_nearest_embargo($islandora_object) {
+  if(!$islandora_object) {
+    $e = new Exception();
+    watchdog_exception('bad fedora object', $e, "ID not defined for :pid, value :v", array(':pid' => gettype($islandora_object), ':v' => (int)$islandora_object));
+    return $islandora_object;
+  }
+  $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
+
+  if ($embargo->rowCount()) {
+    return $islandora_object;
+  }
+  else {
+
+    $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
+    // Try to catch errors of the form `Fatal error: Call to a member function
+    // get() on a non-object in
+    // /sites/all/modules/islandora_ip_embargo/includes/utilities.inc on line 477`.
+    if(!$islandora_object->relationships) {
+        $e = new Exception();
+        watchdog_exception('bad fedora object', $e, "Relationships not defined for :pid", array(':pid' => $islandora_object->id));
+        return $islandora_object;
+    }
+    $relationships = $islandora_object->relationships->get();
+    foreach ($ancestor_rels as $preferred_link) {
+      foreach ($relationships as $rel) {
+        if ($rel['predicate']['value'] === $preferred_link) {
+          $ancestor = islandora_object_load($rel['object']['value']);
+          if(!$ancestor) {
+            return $islandora_object;
+          }
+          return islandora_ip_embarga_nearest_embargo($ancestor);
+        }
+      }
+    }
+    return $islandora_object;
+  }
+}
+
+/**
  * Check that record to be created is not already stored.
  *
  * @param int $lid
@@ -482,6 +531,68 @@ function islandora_ip_embargo_is_duplicate_range($lid, $low, $high) {
 }
 
 /**
+ * For a given PID, return the array of DSIDs saved as public.
+ *
+ * @param string $pid
+ *   Islandora PID
+ *
+ * @return array
+ *   Simple array with one DSID per element, or empty, if no record exists.
+ */
+function islandora_ip_embargo_get_public_datastreams($pid) {
+  $dsids = array();
+  $records = db_select('islandora_ip_embargo_embargoes', 'd')
+    ->fields('d', array('public_dsids'))
+    ->condition('pid', $pid)
+    ->execute();
+
+  if (!$records->rowCount()) {
+    $dsids = variable_get('islandora_ip_embargo_global_public_datastreams', array('TN'));
+  }
+  else {
+    $dsids = explode(',', $records->fetchField());
+  }
+
+  return $dsids;
+}
+
+/**
+ * Return an object's DSIDs as an array for a checkboxes form element.
+ *
+ * @param FedoraObject $islandora_object
+ *   Islandora object.
+ *
+ * @return array
+ *   Associative array such as that obtained from drupal_map_assoc().
+ */
+function islandora_ip_embargo_get_object_datastreams($islandora_object) {
+
+  foreach ($islandora_object as $datastream) {
+    $dsid = strtoupper($datastream->id);
+    $dsid_options[$dsid] = $dsid;
+  }
+  return $dsid_options;
+}
+
+/**
+ * Check if current path is public datastream.
+ *
+ * @param array $dsids
+ *   array of DSIDs, as returned from _get_public_datastreams.
+ *
+ * @return bool
+ *   Return TRUE if current path matches one of the input DSIDs.
+ */
+function islandora_ip_embargo_requesting_public_dsid(array $dsids) {
+  foreach ($dsids as $dsid) {
+    if (strpos(current_path(), "datastream/$dsid") !== FALSE) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
  * Parse the drush option --expiry for use in CRUD and logging.
  *
  * @param NULL|stirng $expiry
@@ -490,7 +601,8 @@ function islandora_ip_embargo_is_duplicate_range($lid, $low, $high) {
  * @return NULL|int
  *   UNIX timestamp or NULL.
  */
-function islandora_ip_embargo_parse_expiry($expiry) {
+
+function islandora_ip_embargo_parse_expiry($expiry = NULL) {
 
   // Set up expiry date from params.
   if ($expiry !== NULL) {
@@ -529,73 +641,5 @@ function islandora_ip_embargo_pid_or_pids() {
   }
   else {
     throw new Exception("Must supply either --pid or --pidsfile.");
-  }
-}
-
-/**
- * Create an embargo based on the input params.
- *
- * @param array $params
- *   key => value for keys (list,exiry,pid)
- *
- * @return NULL
- *   no return
- */
-function islandora_ip_embargo_make_embargo_from_params($params) {
-  $pid = $params['pid'];
-  $lid = islandora_ip_embargo_get_list_object_by('name', $params['list']);
-
-  // Get time into a string for logging, retain timestamp for CRUD.
-  $expiry = islandora_ip_embargo_parse_expiry($params['expiry']);
-  $exptime = $expiry == NULL ? "Never" : strftime('%Y-%m-%d', $expiry);
-
-  // Determine whether an embargo exists already for an object.
-  // What if there is more than one record?
-  $update = islandora_ip_embargo_get_embargo($pid)->fetchObject();
-  if ($update) {
-    if ($update->lid == $lid && $update->expiry == $expiry) {
-      drupal_set_message(t(
-        "No update required for IP range list %list to Islandora object %obj, set to expire %exp",
-          array('%list' => $params['list'], '%obj' => $pid, '%exp' => $exptime))
-      );
-    }
-    else {
-      islandora_ip_embargo_update_embargo($pid, $lid, $expiry);
-      drupal_set_message(
-          t(
-              "Islandora object %obj has IP embargo list %list, set to expire %exp", array(
-                '%list' => $params['list'],
-                '%obj' => $pid,
-                '%exp' => $exptime,
-              )
-          )
-      );
-      watchdog(
-          'islandora_ip_embargo', "Islandora object %obj has IP embargo list %list, set to expire %exp", array(
-            '%list' => $params['list'],
-            '%obj' => $pid,
-            '%exp' => $exptime,
-          ), WATCHDOG_DEBUG
-      );
-    }
-  }
-  else {
-    islandora_ip_embargo_set_embargo($pid, $lid, $expiry);
-    drupal_set_message(
-        t(
-            "Added IP range list %list to Islandora object %obj, set to expire %exp", array(
-              '%list' => $params['list'],
-              '%obj' => $pid,
-              '%exp' => $exptime,
-            )
-        )
-    );
-    watchdog(
-        'islandora_ip_embargo', "Added IP range list %list to Islandora object %obj, set to expire %exp", array(
-          '%list' => $params['list'],
-          '%obj' => $pid,
-          '%exp' => $exptime,
-        ), WATCHDOG_DEBUG
-    );
   }
 }
