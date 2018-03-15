@@ -87,6 +87,13 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
     '#default_value' => variable_get('islandora_ip_embargo_global_public_datastreams', array('TN')),
   );
 
+  $form['islandora_ip_embargo_debug_logging'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug logging'),
+    '#description' => t('When checked, ip embargo will log access decisions to watchdog. Because of the verbosity, this setting will be disabled in the next cron run.'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('islandora_ip_embargo_debug_logging', FALSE),
+  );
   return system_settings_form($form);
 }
 
