@@ -66,9 +66,9 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
   );
   $form['islandora_ip_embargo_djatoka_public_ip_address'] = array(
     '#type' => 'textfield',
-    '#title' => t('Djatoka public ip'),
-    '#description' => t('IP address from which djatoka makes requests.'),
-    '#maxlength' => 15,
+    '#title' => t('Image server public ip(s)'),
+    '#description' => t('IP address from which djatoka (or other image server) makes requests. To specify multiple addresses, separate them with commas.'),
+    '#maxlength' => 255,
     '#required' => FALSE,
     '#default_value' => variable_get(
         'islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1'
