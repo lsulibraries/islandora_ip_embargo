@@ -66,9 +66,9 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
   );
   $form['islandora_ip_embargo_djatoka_public_ip_address'] = array(
     '#type' => 'textfield',
-    '#title' => t('Djatoka public ip'),
-    '#description' => t('IP address from which djatoka makes requests.'),
-    '#maxlength' => 15,
+    '#title' => t('Image server public ip(s)'),
+    '#description' => t('IP address from which djatoka (or other image server) makes requests. To specify multiple addresses, separate them with commas.'),
+    '#maxlength' => 255,
     '#required' => FALSE,
     '#default_value' => variable_get(
         'islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1'
@@ -87,6 +87,13 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
     '#default_value' => variable_get('islandora_ip_embargo_global_public_datastreams', array('TN')),
   );
 
+  $form['islandora_ip_embargo_debug_logging'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug logging'),
+    '#description' => t('When checked, ip embargo will log access decisions to watchdog. Because of the verbosity, this setting will be disabled in the next cron run.'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('islandora_ip_embargo_debug_logging', FALSE),
+  );
   return system_settings_form($form);
 }
 

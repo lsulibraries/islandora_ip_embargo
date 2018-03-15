@@ -129,7 +129,7 @@ function edit_embargo_for_object($object) {
 
 /**
  * Implements hook_edit_islandora_object_ip_embargo().
- * 
+ *
  * @param type $object
  */
 function islandora_ip_embargo_edit_islandora_object_ip_embargo($object) {
@@ -146,7 +146,7 @@ function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datast
   $parent = islandora_object_load($islandora_datastream->parent->id);
   if(!$parent) {
     $e = new Exception();
-    watchdog_exception('bad fedora object', $e, "Parent ID not defined for DSID :dsid of :pid, value :v", 
+    watchdog_exception('bad fedora object', $e, "Parent ID not defined for DSID :dsid of :pid, value :v",
             array(
                 ':dsid' => $islandora_datastream,
                 ':pid' => gettype($parent),
@@ -159,13 +159,22 @@ function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datast
 
   // If we're looking for a public datastream, let it through.
   if (in_array($islandora_datastream->id, $datastreams_allowed) && $restrict_access) {
+    if(variable_get('islandora_ip_embargo_debug_logging', FALSE)){
+      watchdog('IP Embargo', sprintf("Access GRANTED to ip %s for public DSID %s of object %s", ip_address(), $islandora_datastream->id, $parent->id), array(), WATCHDOG_DEBUG);
+    }
     return TRUE;
   }
   elseif ($restrict_access) {
+    if(variable_get('islandora_ip_embargo_debug_logging', FALSE)){
+      watchdog('IP Embargo', sprintf("Access DENIED  to ip %s for DSID %s of object %s", ip_address(), $islandora_datastream->id, $parent->id), array(), WATCHDOG_DEBUG);
+    }
     return FALSE;
   }
 
   // If we found no issues we let things proceed.
+  if(variable_get('islandora_ip_embargo_debug_logging', FALSE)){
+    watchdog('IP Embargo', sprintf("Embargo does not apply for ip %s for DSID %s of object %s", ip_address(), $islandora_datastream->id, $parent->id), array(), WATCHDOG_DEBUG);
+  }
   return NULL;
 }
 
@@ -228,6 +237,7 @@ function islandora_ip_embargo_cron() {
 
   // Execute cleanup on embargo expiry timestamps that have expired.
   islandora_ip_embargo_cron_cleanup(time());
+  variable_set('islandora_ip_embargo_debug_logging', 0);
 }
 
 /**

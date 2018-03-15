@@ -279,9 +279,11 @@ function islandora_ip_embargo_ip_in_range($low, $high) {
   if ($comparable_address >= $comparable_low && $comparable_address <= $comparable_high) {
     return TRUE;
   }
-  $djip = variable_get('islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1');
-  if ($comparable_address == ip2long($djip)) {
-    return TRUE;
+  $djips = explode(',', variable_get('islandora_ip_embargo_djatoka_public_ip_address', '127.0.0.1'));
+  foreach($djips as $djip) {
+    if ($comparable_address == ip2long(trim($djip))) {
+      return TRUE;
+    }
   }
   return FALSE;
 }
@@ -438,6 +440,7 @@ function islandora_ip_embargo_restrict_access($pid) {
   if ($embargo_result->rowCount()) {
     $embargo_info = $embargo_result->fetchObject();
     $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid, FALSE);
+
     if ($list_results->rowCount()) {
       while ($list_info = $list_results->fetchObject()) {
         if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
@@ -479,7 +482,7 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
 
     $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
     // Try to catch errors of the form `Fatal error: Call to a member function
-    // get() on a non-object in 
+    // get() on a non-object in
     // /sites/all/modules/islandora_ip_embargo/includes/utilities.inc on line 477`.
     if(!$islandora_object->relationships) {
         $e = new Exception();
