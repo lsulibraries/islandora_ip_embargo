@@ -280,3 +280,47 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
     }
   }
 }
+
+/**
+ * Implements hook_islandora_view_object_alter.
+ */
+function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) {
+  if(!array_key_exists(NULL, $rendered) || !array_key_exists('#markup', $rendered[NULL])) {
+    return;
+  }
+  module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $embargo_details = '<div class="ip-embargo-details">';
+  $nearest_embargo = islandora_ip_embarga_nearest_embargo($object);
+  $embargo = islandora_ip_embargo_get_embargo($nearest_embargo->id);
+  if ($embargo->rowCount()) {
+    $embargo_info = $embargo->fetchObject();
+    $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid, FALSE);
+
+    // String building...
+    $embargo_origin_stmt = $object->id == $nearest_embargo->id ? 'local policy' : 'inherited from ' . $nearest_embargo->id;
+    $embargo_details .= sprintf('<div class="ip-embargo-origin">Embargo origin: %s</div>', $embargo_origin_stmt);
+    $embargo_details .= sprintf('<div class="ip-embargo-public-dsids">The following datastream ids are public under this embargo: %s</div>', $embargo_info->public_dsids);
+    
+    if ($list_results->rowCount()) {
+      while ($list_info = $list_results->fetchObject()) {
+        $embargo_details .= sprintf('<div class="ip-embargo-list-details">List Name: %s, range: %s - %s</div>', $list_info->name, $list_info->low_end, $list_info->high_end);
+        if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
+          $open_access = TRUE;
+          $embargo_details .= '<div class="ip-embargo-in-range">Your IP is in range.</div>';
+        }
+      }
+    }
+    else {
+      $open_access = TRUE;
+    }
+    $access_condition = get_access_condition($nearest_embargo['MODS']->content);
+    $embargo_details .= sprintf('<div class="ip-embargo-access-condition">Access condition: %s</div>', $access_condition);
+    $embargo_details .= "</div>";
+  }
+  $rendered[NULL]['#markup'] .= $embargo_details;
+}
+
+function get_access_condition($mods) {
+  $xml = simplexml_load_string($mods);
+  return $xml->accessCondition;
+}
