@@ -338,7 +338,7 @@ function islandora_ip_embargo_edit_list_form($form, &$form_state, $list_identifi
   );
   $form['description'] = array(
     '#title' => t('Network List Description'),
-    '#description' => t('User-friendly description for the list of IP addresses.'),
+    '#description' => t('A description of a physical location of the allowed network to comlete the sentence: "This item is available ______". An example value for this field could be "the LSU campus wired and wireless networks."'),
     '#type' => 'textfield',
     '#required' => TRUE,
     '#default_value' => $list_dsescription,

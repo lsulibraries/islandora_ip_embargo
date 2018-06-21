@@ -308,9 +308,14 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
         }
       }
     }
-    $ns_prefix = parse_pid($object->id, 'prefix');
-    $record = get_record($ns_prefix);
-    $institution = get_field_or_default('title', $record, $ns_prefix);
+    $institution = "The owning institution";
+    if(module_exists('islandora_namespace_homepage')) {
+      module_load_include('php', 'islandora_namespace_homepage', 'includes/db');
+      module_load_include('php', 'islandora_namespace_homepage', 'includes/namespaces');
+      $ns_prefix = parse_pid($object->id, 'prefix');
+      $record = get_record($ns_prefix);
+      $institution = get_field_or_default('title', $record, $ns_prefix);      
+    }
     if ($in_range) {
       $embargo_details = "$institution has applied restrictions to the use of this item.
 
@@ -319,11 +324,11 @@ It is available {$list_info->description}.
 Because of your current location, you are able to view this item";
     }
     else {
-      $access_condition = get_access_condition($object['MODS']->content, $nearest_embargo['MODS']->content);
+      list($contact, $rights) = get_access_condition($object, $nearest_embargo);
       $embargo_details .= "Because of your current location, you are not able to view this item.
 
 $institution supplied the following information about this restriction:
-$access_condition";
+$rights $contact";
     }
 
     $embargo_details .= "</div>";
@@ -331,16 +336,31 @@ $access_condition";
   $rendered[NULL]['#markup'] .= $embargo_details;
 }
 
-function get_access_condition($object_mods, $nearest_embargo_mods) {
-  $xml = simplexml_load_string($nearest_embargo_mods);
+function get_access_condition($object, $nearest_embargo) {
+  $candidates = [$object, $nearest_embargo];
+  $contact = $rights = false;
   $accessCondition = '';
-  foreach ($xml->accessCondition as $condition)  {
-    if ($condition['displayLabel'] == 'Rights') {
-      $accessCondition .= sprintf("<div class='mods-access-condition-rights'>Rights: %s</div>", $condition);
-    }
-    if ($condition['displayLabel'] == 'Contact Information') {
-      $accessCondition .= sprintf("<div class='mods-access-condition-contact'>Contact information: %s</div>", $condition);
+
+  foreach ($candidates as $candidate) {
+    $mods = simplexml_load_string($candidate['MODS']->content);
+    foreach (['contact' => 'Contact Information', 'rights' => 'Rights'] as $var => $type) {
+      if (!$$var) {
+        $$var = get_access_condition_by_type($mods, $type);
+      }
+      else {
+        continue;
+      }
     }
   }
-  return $accessCondition;
+
+  return [$contact, $rights];
+}
+
+function get_access_condition_by_type($mods, $type) {
+  foreach ($mods->accessCondition as $condition)  {
+    if ($condition['displayLabel'] == $type) {
+      return $condition;
+    }
+  }
+  return false;
 }
