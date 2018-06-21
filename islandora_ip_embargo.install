@@ -151,3 +151,15 @@ function islandora_ip_embargo_update_7102() {
   );
   db_add_field('islandora_ip_embargo_embargoes', 'public_dsids', $new_field);
 }
+
+/**
+ * Implements hook_update_N().
+ */
+function islandora_ip_embargo_update_7103() {
+  $new_field = array(
+    'type' => 'text',
+    'not null' => FALSE,
+    'description' => 'Description of the network range list.',
+  );
+  db_add_field('islandora_ip_embargo_lists', 'description', $new_field);
+}

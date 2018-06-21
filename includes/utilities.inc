@@ -46,9 +46,9 @@ function islandora_ip_embargo_get_ranges($lid) {
  * @param string $name
  *   The name of the new list.
  */
-function islandora_ip_embargo_add_list($name) {
+function islandora_ip_embargo_add_list($name, $description) {
   db_insert('islandora_ip_embargo_lists')
-  ->fields(array('name' => $name))
+  ->fields(array('name' => $name, 'description' => $description))
   ->execute();
 }
 
@@ -60,9 +60,9 @@ function islandora_ip_embargo_add_list($name) {
  * @param int $list_identifier
  *   The identifier of the list.
  */
-function islandora_ip_embargo_edit_list($name, $list_identifier) {
+function islandora_ip_embargo_edit_list($name, $description, $list_identifier) {
   db_update('islandora_ip_embargo_lists')
-  ->fields(array('name' => $name))
+  ->fields(array('name' => $name, 'description' => $description))
   ->condition('lid', $list_identifier)
   ->execute();
 }
@@ -103,6 +103,15 @@ function islandora_ip_embargo_get_list_object_by($field, $value) {
   ->range(0, 1)
   ->execute()->fetchObject();
   return $field == 'lid' ? $list->name : $list->lid;
+}
+
+function islandora_ip_embargo_get_list_object_by_lid($lid) {
+  $list = db_select('islandora_ip_embargo_lists', 'i')
+  ->fields("i")
+  ->condition('lid', $lid)
+  ->range(0, 1)
+  ->execute()->fetchObject();
+  return $list;
 }
 
 /**
