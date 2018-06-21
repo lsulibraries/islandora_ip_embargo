@@ -297,24 +297,35 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
     $list_info = islandora_ip_embargo_get_list_object_by_lid($embargo_info->lid);
     $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid, FALSE);
 
-    // String building...
-//    $embargo_origin_stmt = $object->id == $nearest_embargo->id ? 'local policy' : 'inherited from ' . $nearest_embargo->id;
-//    $embargo_details .= sprintf('<div class="ip-embargo-origin">Embargo origin: %s</div>', $embargo_origin_stmt);
-    $embargo_details .= sprintf('<div class="ip-embargo-list-description">%s</div>', $list_info->description);
-    
+//    $embargo_details .= sprintf('<div class="ip-embargo-list-description">%s</div>', $list_info->description);
+    $in_range = false;
     if ($list_results->rowCount()) {
-      $in_range = '<div class="ip-embargo-not-in-range"></div>';
       while ($list_info = $list_results->fetchObject()) {
 //        $embargo_details .= sprintf('<div class="ip-embargo-list-details">List Name: %s, range: %s - %s</div>', $list_info->name, $list_info->low_end, $list_info->high_end);
         if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
-          $in_range = '<div class="ip-embargo-in-range"></div>';
+          $in_range = true;
           break;
         }
       }
-      $embargo_details .= $in_range;
     }
-    $access_condition = get_access_condition($object['MODS']->content, $nearest_embargo['MODS']->content);
-    $embargo_details .= sprintf('<div class="ip-embargo-access-condition">%s</div>', $access_condition);
+    $ns_prefix = parse_pid($object->id, 'prefix');
+    $record = get_record($ns_prefix);
+    $institution = get_field_or_default('title', $record, $ns_prefix);
+    if ($in_range) {
+      $embargo_details = "$institution has applied restrictions to the use of this item.
+
+It is available {$list_info->description}.
+
+Because of your current location, you are able to view this item";
+    }
+    else {
+      $access_condition = get_access_condition($object['MODS']->content, $nearest_embargo['MODS']->content);
+      $embargo_details .= "Because of your current location, you are not able to view this item.
+
+$institution supplied the following information about this restriction:
+$access_condition";
+    }
+
     $embargo_details .= "</div>";
   }
   $rendered[NULL]['#markup'] .= $embargo_details;
