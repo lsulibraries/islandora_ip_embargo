@@ -303,14 +303,15 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
     $embargo_details .= sprintf('<div class="ip-embargo-list-description">%s</div>', $list_info->description);
     
     if ($list_results->rowCount()) {
-      $in_range = '<div class="ip-embargo-not-in-range"/>';
+      $in_range = '<div class="ip-embargo-not-in-range"></div>';
       while ($list_info = $list_results->fetchObject()) {
 //        $embargo_details .= sprintf('<div class="ip-embargo-list-details">List Name: %s, range: %s - %s</div>', $list_info->name, $list_info->low_end, $list_info->high_end);
         if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
-          $embargo_details .= '<div class="ip-embargo-in-range"/>';
+          $in_range = '<div class="ip-embargo-in-range"></div>';
           break;
         }
       }
+      $embargo_details .= $in_range;
     }
     $access_condition = get_access_condition($object['MODS']->content, $nearest_embargo['MODS']->content);
     $embargo_details .= sprintf('<div class="ip-embargo-access-condition">%s</div>', $access_condition);
@@ -324,10 +325,10 @@ function get_access_condition($object_mods, $nearest_embargo_mods) {
   $accessCondition = '';
   foreach ($xml->accessCondition as $condition)  {
     if ($condition['displayLabel'] == 'Rights') {
-      $accessCondition .= sprintf("<div class='modds-access-condition-rights'>Rights: %s</div>", $condition);
+      $accessCondition .= sprintf("<div class='mods-access-condition-rights'>Rights: %s</div>", $condition);
     }
     if ($condition['displayLabel'] == 'Contact Information') {
-      $accessCondition .= sprintf("<div class='modds-access-condition-contact'>Contact information: %s</div>", $condition);
+      $accessCondition .= sprintf("<div class='mods-access-condition-contact'>Contact information: %s</div>", $condition);
     }
   }
   return $accessCondition;
