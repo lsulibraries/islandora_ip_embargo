@@ -317,18 +317,10 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
       $institution = get_field_or_default('title', $record, $ns_prefix);      
     }
     if ($in_range) {
-      $embargo_details = "$institution has applied restrictions to the use of this item.
-
-It is available {$list_info->description}.
-
-Because of your current location, you are able to view this item";
+      $embargo_details .= islandora_ip_embargo_get_inrange_message($list_info, $institution);
     }
     else {
-      list($contact, $rights) = get_access_condition($object, $nearest_embargo);
-      $embargo_details .= "Because of your current location, you are not able to view this item.
-
-$institution supplied the following information about this restriction:
-$rights $contact";
+      $embargo_details .= islandora_ip_embargo_get_outtarange_message($object, $nearest_embargo, $institution);
     }
 
     $embargo_details .= "</div>";
@@ -336,10 +328,22 @@ $rights $contact";
   $rendered[NULL]['#markup'] .= $embargo_details;
 }
 
+function islandora_ip_embargo_get_inrange_message($embargo_list_info, $institution) {
+  return "$institution has applied restrictions to the use of this item.
+It is available {$embargo_list_info->description}. Because of your current location, you are able to view this item";
+}
+
+function islandora_ip_embargo_get_outtarange_message($object, $nearest_embargo, $institution) {
+  list($contact, $rights) = get_access_condition($object, $nearest_embargo);
+  return "Because of your current location, you are not able to view this item.
+
+$institution supplied the following information about this restriction:
+$rights $contact";
+}
+
 function get_access_condition($object, $nearest_embargo) {
   $candidates = [$object, $nearest_embargo];
-  $contact = $rights = false;
-  $accessCondition = '';
+  $contact = $rights = FALSE;
 
   foreach ($candidates as $candidate) {
     $mods = simplexml_load_string($candidate['MODS']->content);
