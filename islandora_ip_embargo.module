@@ -297,74 +297,73 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
     $list_info = islandora_ip_embargo_get_list_object_by_lid($embargo_info->lid);
     $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid, FALSE);
 
-//    $embargo_details .= sprintf('<div class="ip-embargo-list-description">%s</div>', $list_info->description);
-    $in_range = false;
+    $in_range = FALSE;
     if ($list_results->rowCount()) {
       while ($list_info = $list_results->fetchObject()) {
-//        $embargo_details .= sprintf('<div class="ip-embargo-list-details">List Name: %s, range: %s - %s</div>', $list_info->name, $list_info->low_end, $list_info->high_end);
         if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
-          $in_range = true;
+          $in_range = TRUE;
           break;
         }
       }
     }
-    $institution = "The owning institution";
-    if(module_exists('islandora_namespace_homepage')) {
-      module_load_include('php', 'islandora_namespace_homepage', 'includes/db');
-      module_load_include('php', 'islandora_namespace_homepage', 'includes/namespaces');
-      $ns_prefix = parse_pid($object->id, 'prefix');
-      $record = get_record($ns_prefix);
-      $institution = get_field_or_default('title', $record, $ns_prefix);      
-    }
-    if ($in_range) {
-      $embargo_details .= islandora_ip_embargo_get_inrange_message($list_info, $institution);
-    }
-    else {
-      $embargo_details .= islandora_ip_embargo_get_outtarange_message($object, $nearest_embargo, $institution);
-    }
-
+    $msg_type = $in_range ? 'islandora_ip_embargo_message_ebargoed_but_in_range' : 'islandora_ip_embargo_message_ebargoed_and_outta_range';
+    $embargo_details .= islandora_ip_embargo_get_message($msg_type, $list_info, $object, $nearest_embargo);
     $embargo_details .= "</div>";
   }
   $rendered[NULL]['#markup'] .= $embargo_details;
 }
 
-function islandora_ip_embargo_get_inrange_message($embargo_list_info, $institution) {
-  return "$institution has applied restrictions to the use of this item.
-It is available {$embargo_list_info->description}. Because of your current location, you are able to view this item";
+function islandora_ip_embargo_get_message($msg_type, $list_info, $object, $nearest_embargo) {
+  module_load_include('inc', 'islandora_ip_embargo', 'includes/forms');
+  $raw = variable_get($msg_type, islandora_ip_embargo_get_default_msg_text($msg_type));
+  return islandora_ip_embargo_expand_text_tokens($list_info, $object, $nearest_embargo, $raw);
 }
 
-function islandora_ip_embargo_get_outtarange_message($object, $nearest_embargo, $institution) {
-  list($contact, $rights) = get_access_condition($object, $nearest_embargo);
-  return "Because of your current location, you are not able to view this item.
-
-$institution supplied the following information about this restriction:
-$rights $contact";
-}
-
-function get_access_condition($object, $nearest_embargo) {
-  $candidates = [$object, $nearest_embargo];
-  $contact = $rights = FALSE;
-
+function islandora_ip_embargo_get_access_condition_by_type($candidates, $type) {
+  $full_types = ['rights' => 'Rights', 'contact' => 'Contact Information'];
+  if (!array_key_exists($type, $full_types)) {
+    return FALSE;
+  }
   foreach ($candidates as $candidate) {
     $mods = simplexml_load_string($candidate['MODS']->content);
-    foreach (['contact' => 'Contact Information', 'rights' => 'Rights'] as $var => $type) {
-      if (!$$var) {
-        $$var = get_access_condition_by_type($mods, $type);
-      }
-      else {
-        continue;
+    foreach ($mods->accessCondition as $element) {
+      if ($element['displayLabel'] == $full_types[$type]) {
+        return $element;
       }
     }
   }
-
-  return [$contact, $rights];
+  return FALSE;
 }
 
-function get_access_condition_by_type($mods, $type) {
-  foreach ($mods->accessCondition as $condition)  {
-    if ($condition['displayLabel'] == $type) {
-      return $condition;
-    }
+function islandora_ip_embargo_expand_text_tokens($list_info, $object, $nearest_embargo, $raw_text) {
+  preg_match_all('/(%%[a-z\-]+%%)/', $raw_text, $matches);
+
+  foreach ($matches[1] as $match) {
+    $replacement = islandora_ip_embargo_get_text_replacement($match, $list_info, $object, $nearest_embargo);
+    $raw_text = str_replace($match, $replacement, $raw_text);
   }
-  return false;
+  return $raw_text;
+}
+
+function islandora_ip_embargo_get_text_replacement($key, $list_info, $object, $nearest_embargo) {
+  switch ($key) {
+    case '%%institution%%':
+      $institution = "The owning institution";
+      if (module_exists('islandora_namespace_homepage')) {
+        module_load_include('php', 'islandora_namespace_homepage', 'includes/db');
+        module_load_include('php', 'islandora_namespace_homepage', 'includes/namespaces');
+        $ns_prefix = parse_pid($object->id, 'prefix');
+        $record = get_record($ns_prefix);
+        $institution = get_field_or_default('title', $record, $ns_prefix);
+      }
+      return $institution;
+
+    case '%%geographic-description%%':
+      return $list_info->description;
+
+    case '%%rights%%':
+    case '%%contact%%':
+      $type = str_replace('%%', '', $key);
+      return islandora_ip_embargo_get_access_condition_by_type(array($object, $nearest_embargo), $type);
+  }
 }

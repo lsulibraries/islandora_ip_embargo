@@ -94,7 +94,42 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
     '#required' => FALSE,
     '#default_value' => variable_get('islandora_ip_embargo_debug_logging', FALSE),
   );
+  $in_msg_type = 'islandora_ip_embargo_message_ebargoed_but_in_range';
+  $form[$in_msg_type] = array(
+    '#type' => 'textarea',
+    '#title' => t('Embargoed but in range message'),
+    '#description' => t('Message for users of embargoed items whose IP is in the allowed range. Available tokens are "%%institution%%", "%%geographic-description%%", "%%rights%%", "%%contact%%'),
+    '#required' => TRUE,
+    '#default_value' => variable_get(
+      $in_msg_type,
+      islandora_ip_embargo_get_default_msg_text($in_msg_type)
+    ),
+  );
+  $out_msg_type = 'islandora_ip_embargo_message_ebargoed_and_outta_range';
+  $form[$out_msg_type] = array(
+    '#type' => 'textarea',
+    '#title' => t('Embargoed and not in range message'),
+    '#description' => t('Message for users of embargoed items whose IP is not in the allowed range(s). Available tokens are "%%institution%%", "%%geographic-description%%", "%%rights%%", "%%contact%%'),
+    '#required' => TRUE,
+    '#default_value' => variable_get(
+      $out_msg_type,
+      islandora_ip_embargo_get_default_msg_text($out_msg_type)
+    ),
+  );
   return system_settings_form($form);
+}
+
+function islandora_ip_embargo_get_default_msg_text($type) {
+  switch ($type) {
+    case 'islandora_ip_embargo_message_ebargoed_and_outta_range':
+      return 'Because of your current location, you are not able to view this item. %%institution%% supplied the following information about this restriction: %%rights%% %%contact%%';
+
+    case 'islandora_ip_embargo_message_ebargoed_but_in_range':
+      return '%%institution%% has applied restrictions to the use of this item. It is available %%geographic-description%%. Because of your current location, you are able to view this item';
+
+    default:
+      return '';
+  }
 }
 
 /**
