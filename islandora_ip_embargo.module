@@ -143,7 +143,28 @@ function islandora_ip_embargo_edit_islandora_object_ip_embargo($object) {
  */
 function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datastream, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  $parent = islandora_object_load($islandora_datastream->parent->id);
+  $parent_id = $islandora_datastream->parent->id;
+  $dsid = $islandora_datastream->id;
+
+  $restricted = &drupal_static(__FUNCTION__ . '_restricted');
+  if (!isset($restricted)) {
+    if (FALSE !== ($cache = cache_get('islandora_ip_embargo_restricted_datastreams'))) {
+      $restricted = $cache->data;
+    }
+    else {
+      $restricted = array();
+    }
+  }
+
+  if (!empty($restricted) && array_key_exists($parent_id, $restricted)) {
+    if(array_key_exists($dsid, $restricted[$parent_id])) {
+      return $restricted[$parent_id][$dsid];
+    }
+  }
+
+  $open_access = NULL;
+
+  $parent = islandora_object_load($parent_id);
   if(!$parent) {
     $e = new Exception();
     watchdog_exception('bad fedora object', $e, "Parent ID not defined for DSID :dsid of :pid, value :v",
@@ -162,20 +183,23 @@ function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datast
     if(variable_get('islandora_ip_embargo_debug_logging', FALSE)){
       watchdog('IP Embargo', sprintf("Access GRANTED to ip %s for public DSID %s of object %s", ip_address(), $islandora_datastream->id, $parent->id), array(), WATCHDOG_DEBUG);
     }
-    return TRUE;
+    $open_access = TRUE;
   }
   elseif ($restrict_access) {
     if(variable_get('islandora_ip_embargo_debug_logging', FALSE)){
       watchdog('IP Embargo', sprintf("Access DENIED  to ip %s for DSID %s of object %s", ip_address(), $islandora_datastream->id, $parent->id), array(), WATCHDOG_DEBUG);
     }
-    return FALSE;
+    $open_access = FALSE;
   }
 
   // If we found no issues we let things proceed.
   if(variable_get('islandora_ip_embargo_debug_logging', FALSE)){
     watchdog('IP Embargo', sprintf("Embargo does not apply for ip %s for DSID %s of object %s", ip_address(), $islandora_datastream->id, $parent->id), array(), WATCHDOG_DEBUG);
   }
-  return NULL;
+  // If we found no issues we let things proceed.
+  $restricted[$parent_id][$dsid] = $open_access;
+  cache_set('islandora_ip_embargo_restricted_datastreams', $restricted);
+  return $open_access;
 }
 
 /**
@@ -185,6 +209,11 @@ function islandora_ip_embargo_islandora_datastream_access($op, $islandora_datast
  */
 function islandora_ip_embargo_islandora_object_access($op, $islandora_object, $user) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $restricted = &drupal_static(__FUNCTION__ . '_restricted');
+  if (!empty($restricted) && array_key_exists($islandora_object->id, $restricted)) {
+    return $restricted[$islandora_object->id];
+  }
+  $open_access = NULL;
   $embargoed_object = islandora_ip_embarga_nearest_embargo($islandora_object);
 
   // Handle an embargo.
@@ -194,6 +223,7 @@ function islandora_ip_embargo_islandora_object_access($op, $islandora_object, $u
     $public_dsids = islandora_ip_embargo_get_public_datastreams($embargoed_object->id);
 
     if (!empty($public_dsids) && user_access(ISLANDORA_IP_EMBARGO_VIEW_PUBLIC_DATASTREAMS)) {
+      $restricted[$islandora_object->id] = NULL;
       return NULL;
     }
     // If there is a redirect configured then use it. If not let Drupal do it.
@@ -210,16 +240,18 @@ function islandora_ip_embargo_islandora_object_access($op, $islandora_object, $u
         }
       }
       else {
-        return FALSE;
+        $open_access = FALSE;
       }
     }
     else {
-      return FALSE;
+      $open_access = FALSE;
     }
   }
 
+  // Cache for later.
+  $restricted[$islandora_object->id] = $open_access;
   // If we found no issues we let things proceed.
-  return NULL;
+  return $open_access;
 }
 
 /**
