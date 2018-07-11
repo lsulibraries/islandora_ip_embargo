@@ -282,10 +282,17 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
 }
 
 /**
- * Implements hook_islandora_view_object_alter.
+ * Implements hook_islandora_view_object_alter().
+ *
+ * This function determines whether the object being viewed has
+ * IP active embargoes and adds some explanatory information into the markup.
+ * @link https://trello.com/c/DuHx1xLS trello task description
+ *
+ * Probably not the best long-term entry point;
+ * @todo look for other entry points/hooks.
  */
 function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) {
-  if(!array_key_exists(NULL, $rendered) || !array_key_exists('#markup', $rendered[NULL])) {
+  if (!array_key_exists(NULL, $rendered) || !array_key_exists('#markup', $rendered[NULL])) {
     return;
   }
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
@@ -313,6 +320,18 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
   $rendered[NULL]['#markup'] .= $embargo_details;
 }
 
+/**
+ *
+ * @param string $msg_type
+ *   This is a key that refers to an admin GUI setting.
+ * @param type $list_info
+ * @param IslandoraFedoraObject $object
+ *   The object being viewed.
+ * @param IslandoraFedoraObject $nearest_embargo
+ *   for inherited embargoes, this is the object where the embargo is defined.
+ *
+ * @return type
+ */
 function islandora_ip_embargo_get_message($msg_type, $list_info, $object, $nearest_embargo) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/forms');
   $raw = variable_get($msg_type, islandora_ip_embargo_get_default_msg_text($msg_type));
