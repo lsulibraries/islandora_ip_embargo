@@ -229,6 +229,8 @@ function islandora_ip_embargo_get_embargos($list_identifier) {
  *   The timestamp to stop the embargo at.
  */
 function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
+  cache_clear_all('islandora_ip_embargo_restrict_access', 'cache');
+  cache_clear_all('islandora_ip_embargo_restricted_datastreams', 'cache');
   db_update('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
@@ -251,6 +253,9 @@ function islandora_ip_embargo_update_embargo($islandora_object_id, $list_id, $ex
  *   The timestamp to stop the embargo at.
  */
 function islandora_ip_embargo_set_embargo($islandora_object_id, $list_id, $expiry = NULL, $public_dsids = NULL) {
+  cache_clear_all('islandora_ip_embargo_restrict_access', 'cache');
+  cache_clear_all('islandora_ip_embargo_restricted_datastreams', 'cache');
+  cache_clear_all('islandora_ip_embargo_nearest_embargoes', 'cache');
   db_insert('islandora_ip_embargo_embargoes')
   ->fields(array(
     'pid' => $islandora_object_id,
@@ -443,6 +448,21 @@ function islandora_ip_embargo_get_all_embargo_objects($limit = 10) {
  *   True if one should restrict access. False if one should not.
  */
 function islandora_ip_embargo_restrict_access($pid) {
+  $restricted = &drupal_static(__FUNCTION__ . '_restricted');
+
+  if (!isset($restricted)) {
+    if (FALSE !== ($cache = cache_get('islandora_ip_embargo_restrict_access'))) {
+      $restricted = $cache->data;
+    }
+    else {
+      $restricted = array();
+    }
+  }
+
+  if (!empty($restricted) && array_key_exists($pid, $restricted)) {
+    return $restricted[$pid];
+  }
+
   $open_access = FALSE;
 
   $embargo_result = islandora_ip_embargo_get_embargo($pid);
@@ -464,6 +484,8 @@ function islandora_ip_embargo_restrict_access($pid) {
   else {
     $open_access = TRUE;
   }
+  $restricted[$pid] = !$open_access;
+  cache_set('islandora_ip_embargo_restrict_access', $restricted, 'cache', time() + 3600);
   return !$open_access;
 }
 
@@ -482,21 +504,57 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
     watchdog_exception('bad fedora object', $e, "ID not defined for :pid, value :v", array(':pid' => gettype($islandora_object), ':v' => (int)$islandora_object));
     return $islandora_object;
   }
-  $embargo = islandora_ip_embargo_get_embargo($islandora_object->id);
+  $pid = $islandora_object->id;
 
-  if ($embargo->rowCount()) {
+  // Get cached embargoes info.
+  $nearest_embargoes = &drupal_static(__FUNCTION__ . '_ne');
+  if (!isset($nearest_embargoes)) {
+    if (FALSE !== ($cache = cache_get('islandora_ip_embargo_nearest_embargoes'))) {
+      $nearest_embargoes = $cache->data;
+    }
+    else {
+      $nearest_embargoes = array();
+    }
+  }
+  if (!empty($nearest_embargoes) && array_key_exists($pid, $nearest_embargoes)) {
+    return $nearest_embargoes[$pid];
+  }
+
+  $stvar_cycles = __FUNCTION__ . '_cycle_detection';
+  $already_seen = &drupal_static($stvar_cycles);
+  if (!empty($already_seen) && in_array($pid, $already_seen)) {
+    $e = new Exception('this node has already been seen in DFS');
+    watchdog_exception('cycle detection', $e, ":pid is part of a cycle in the graph", array(':pid' => $pid));
+
+    drupal_static_reset($stvar_cycles);
+    $nearest_embargoes[$pid] = $islandora_object;
+    cache_set('islandora_ip_embargo_nearest_embargoes', $nearest_embargoes, 'cache', time() + 3600);
     return $islandora_object;
   }
   else {
+    $already_seen[] = $pid;
+  }
+  $embargo = islandora_ip_embargo_get_embargo($pid);
 
+  if ($embargo->rowCount()) {
+    $nearest_embargoes[$pid] = $islandora_object;
+    cache_set('islandora_ip_embargo_nearest_embargoes', $nearest_embargoes, 'cache', time() + 3600);
+    return $islandora_object;
+  }
+  else {
     $ancestor_rels = array('isConstituentOf', 'isMemberOfCollection');
+    
     // Try to catch errors of the form `Fatal error: Call to a member function
     // get() on a non-object in
     // /sites/all/modules/islandora_ip_embargo/includes/utilities.inc on line 477`.
-    if(!$islandora_object->relationships) {
-        $e = new Exception();
-        watchdog_exception('bad fedora object', $e, "Relationships not defined for :pid", array(':pid' => $islandora_object->id));
-        return $islandora_object;
+
+    if (!$islandora_object->relationships) {
+      $e = new Exception();
+      watchdog_exception('bad fedora object', $e, "Relationships not defined for :pid", array(':pid' => $pid));
+      drupal_static_reset($stvar_cycles);
+      $nearest_embargoes[$pid] = $islandora_object;
+      cache_set('islandora_ip_embargo_nearest_embargoes', $nearest_embargoes, 'cache', time() + 3600);
+      return $islandora_object;
     }
     $relationships = $islandora_object->relationships->get();
     foreach ($ancestor_rels as $preferred_link) {
@@ -504,12 +562,21 @@ function islandora_ip_embarga_nearest_embargo($islandora_object) {
         if ($rel['predicate']['value'] === $preferred_link) {
           $ancestor = islandora_object_load($rel['object']['value']);
           if(!$ancestor) {
+            drupal_static_reset($stvar_cycles);
+            $nearest_embargoes[$pid] = $islandora_object;
+            cache_set('islandora_ip_embargo_nearest_embargoes', $nearest_embargoes, 'cache', time() + 3600);
             return $islandora_object;
           }
-          return islandora_ip_embarga_nearest_embargo($ancestor);
+
+          $nearest_embargoes[$pid] = islandora_ip_embarga_nearest_embargo($ancestor);
+          cache_set('islandora_ip_embargo_nearest_embargoes', $nearest_embargoes, 'cache', time() + 3600);
+          return $nearest_embargoes[$pid];
         }
       }
     }
+    drupal_static_reset($stvar_cycles);
+    $nearest_embargoes[$pid] = $islandora_object;
+    cache_set('islandora_ip_embargo_nearest_embargoes', $nearest_embargoes, 'cache', time() + 3600);
     return $islandora_object;
   }
 }
