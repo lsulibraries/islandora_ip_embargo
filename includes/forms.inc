@@ -2,7 +2,7 @@
 
 /**
  * @file
- * This file holds forms for islandora_ip_embargo
+ * This file holds forms for islandora_ip_embargo.
  */
 
 /**
@@ -16,7 +16,7 @@
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_settings_form($form, &$form_state) {
+function islandora_ip_embargo_settings_form(array $form, array &$form_state) {
   $form['islandora_ip_embargo_embargoed_redirect'] = array(
     '#type' => 'textfield',
     '#title' => t('Object embargoed redirect'),
@@ -55,7 +55,7 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
   $form['islandora_ip_embargo_overlay_text_color'] = array(
     '#type' => 'textfield',
     '#title' => t('Embargoed item overlay text color'),
-    '#description' => t('Overlay text color in hexideciamal format (E.g. FF0000 or F0A).'),
+    '#description' => t('Overlay text color in hexadecimal format (E.g. FF0000 or F0A).'),
     '#maxlength' => 6,
     '#required' => TRUE,
     '#element_validate' => array('islandora_ip_embargo_hex_validate'),
@@ -143,7 +143,7 @@ function islandora_ip_embargo_get_default_msg_text($type) {
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_manage_embargo_list_form($form, &$form_state) {
+function islandora_ip_embargo_manage_embargo_list_form(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
 
   $options = array();
@@ -197,7 +197,7 @@ function islandora_ip_embargo_manage_embargo_list_form($form, &$form_state) {
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_delete_object_embargo_form_name_submit($form, &$form_state) {
+function islandora_ip_embargo_delete_object_embargo_form_name_submit(array $form, array &$form_state) {
   foreach ($form_state['values']['Lists'] as $list_identifier => $is_checked) {
     if ($is_checked) {
       islandora_ip_embargo_remove_embargo($list_identifier);
@@ -216,7 +216,7 @@ function islandora_ip_embargo_delete_object_embargo_form_name_submit($form, &$fo
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_manage_lists_form($form, &$form_state) {
+function islandora_ip_embargo_manage_lists_form(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
 
   $options = array();
@@ -256,7 +256,7 @@ function islandora_ip_embargo_manage_lists_form($form, &$form_state) {
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_manage_lists_form_validate($form, &$form_state) {
+function islandora_ip_embargo_manage_lists_form_validate(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   foreach ($form_state['values']['Lists'] as $list_identifier => $is_checked) {
     if ($is_checked) {
@@ -282,7 +282,7 @@ function islandora_ip_embargo_manage_lists_form_validate($form, &$form_state) {
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_manage_lists_form_submit($form, &$form_state) {
+function islandora_ip_embargo_manage_lists_form_submit(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   foreach ($form_state['values']['Lists'] as $list_identifier => $is_checked) {
     if ($is_checked) {
@@ -302,7 +302,7 @@ function islandora_ip_embargo_manage_lists_form_submit($form, &$form_state) {
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_add_list_form($form, &$form_state) {
+function islandora_ip_embargo_add_list_form(array $form, array &$form_state) {
   $form['name'] = array(
     '#title' => t('Network List Name'),
     '#description' => t('Label for the list of IP addresses.'),
@@ -328,7 +328,7 @@ function islandora_ip_embargo_add_list_form($form, &$form_state) {
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_add_list_form_submit($form, &$form_state) {
+function islandora_ip_embargo_add_list_form_submit(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   islandora_ip_embargo_add_list($form_state['values']['name'], $form_state['values']['description']);
   $form_state['redirect'] = 'admin/islandora/tools/ip_embargo';
@@ -347,7 +347,7 @@ function islandora_ip_embargo_add_list_form_submit($form, &$form_state) {
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_edit_list_form($form, &$form_state, $list_identifier) {
+function islandora_ip_embargo_edit_list_form(array $form, array &$form_state, $list_identifier) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $list_information = islandora_ip_embargo_get_lists_information($list_identifier);
   $list= islandora_ip_embargo_get_list_object_by_lid($list_identifier);
@@ -412,7 +412,7 @@ function islandora_ip_embargo_edit_list_form($form, &$form_state, $list_identifi
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_edit_list_form_name_submit($form, &$form_state) {
+function islandora_ip_embargo_edit_list_form_name_submit(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   islandora_ip_embargo_edit_list(
     $form_state['values']['name'],
@@ -428,7 +428,7 @@ function islandora_ip_embargo_edit_list_form_name_submit($form, &$form_state) {
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_edit_list_form_range_submit($form, &$form_state) {
+function islandora_ip_embargo_edit_list_form_range_submit(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   foreach ($form_state['values']['ranges'] as $range_identifier => $is_checked) {
     if ($is_checked) {
@@ -450,7 +450,7 @@ function islandora_ip_embargo_edit_list_form_range_submit($form, &$form_state) {
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_add_range_form($form, &$form_state, $list_identifier) {
+function islandora_ip_embargo_add_range_form(array $form, array &$form_state, $list_identifier) {
   $form['low_end'] = array(
     '#title' => t('Low end'),
     '#description' => t('First address in the IP range (e.g, "172.16.0.0").'),
@@ -501,7 +501,7 @@ function islandora_ip_embargo_add_range_form_validate(array $form, array &$form_
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_add_range_form_submit($form, &$form_state) {
+function islandora_ip_embargo_add_range_form_submit(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $list_identifier = $form_state['storage']['islandora_ip_embargo']['list_identifier'];
 
@@ -525,7 +525,7 @@ function islandora_ip_embargo_add_range_form_submit($form, &$form_state) {
  * @return array
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandora_object) {
+function islandora_ip_embargo_object_embargo_form(array $form, array &$form_state, $islandora_object) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $embargoed_object = islandora_ip_embarga_nearest_embargo($islandora_object);
   $form_state['storage']['islandroa_ip_embargo']['update'] = FALSE;
@@ -555,6 +555,7 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     '#title' => 'IP address range list',
     '#description' => t('The list of IP ranges for which this object will be available.  Any other network address will be blocked.'),
     '#options' => $options,
+    '#element_validate' => array('islandora_ip_embargo_ip_address_range_list_validate'),
   );
   $form['expiry_date'] = array(
     '#type' => 'date',
@@ -607,7 +608,7 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
  * @param array $form_state
  *   The Drupal form state.
  */
-function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
+function islandora_ip_embargo_object_embargo_form_submit(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   if ($form_state['values']['lists'] === 'Inherit') {
     islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
@@ -645,7 +646,7 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
 }
 
 /**
- * Validate hexidecimal color input.
+ * Validate hexadecimal color input.
  *
  * @param array $element
  *   The Drupal element data.
@@ -654,9 +655,25 @@ function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
  * @param array $form
  *   The Drupal form definition.
  */
-function islandora_ip_embargo_hex_validate($element, &$form_state, $form) {
+function islandora_ip_embargo_hex_validate(array $element, array &$form_state, array $form) {
   $color = $element['#value'];
   if (!(ctype_xdigit($color) && (strlen($color) === 6 || strlen($color) === 3))) {
-    form_set_error('islandora_ip_embargo_overlay_text_color', t('Color must match hexideciamal format, requires 3 or 6 characters and A-F 0-9 characters apply (E.g. F0A3B1 or F1A).'));
+    form_set_error('islandora_ip_embargo_overlay_text_color', t('Color must match hexadecimal format, requires 3 or 6 characters and A-F 0-9 characters apply (E.g. F0A3B1 or F1A).'));
+  }
+}
+
+/**
+ * Validate IP address range list when embargoing.
+ *
+ * @param array $element
+ *   The Drupal element data.
+ * @param array $form_state
+ *   The Drupal form state.
+ * @param array $form
+ *   The Drupal form definition.
+ */
+function islandora_ip_embargo_ip_address_range_list_validate(array $element, array &$form_state, array $form) {
+  if (!$form_state['storage']['islandroa_ip_embargo']['update'] && ($element['#value'] == 'none')) {
+    form_set_error('islandora_ip_embargo_ip_address_list', t('This object was not previously embargoed, so setting the "IP address range list" to "No IP Embargo" does not change anything.'));
   }
 }
