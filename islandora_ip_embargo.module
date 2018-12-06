@@ -280,3 +280,90 @@ function islandora_ip_embargo_preprocess_image(&$variables) {
     }
   }
 }
+
+/**
+ * Implements hook_islandora_view_object_alter.
+ */
+function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) {
+  if(!array_key_exists(NULL, $rendered) || !array_key_exists('#markup', $rendered[NULL])) {
+    return;
+  }
+  module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  $embargo_details = '<div class="ip-embargo-details">';
+  $nearest_embargo = islandora_ip_embarga_nearest_embargo($object);
+  $embargo = islandora_ip_embargo_get_embargo($nearest_embargo->id);
+  if ($embargo->rowCount()) {
+    $embargo_info = $embargo->fetchObject();
+    $list_info = islandora_ip_embargo_get_list_object_by_lid($embargo_info->lid);
+    $list_results = islandora_ip_embargo_get_lists_information($embargo_info->lid, FALSE);
+
+    $in_range = FALSE;
+    if ($list_results->rowCount()) {
+      while ($list_info = $list_results->fetchObject()) {
+        if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
+          $in_range = TRUE;
+          break;
+        }
+      }
+    }
+    $msg_type = $in_range ? 'islandora_ip_embargo_message_ebargoed_but_in_range' : 'islandora_ip_embargo_message_ebargoed_and_outta_range';
+    $embargo_details .= islandora_ip_embargo_get_message($msg_type, $list_info, $object, $nearest_embargo);
+    $embargo_details .= "</div>";
+  }
+  $rendered[NULL]['#markup'] .= $embargo_details;
+}
+
+function islandora_ip_embargo_get_message($msg_type, $list_info, $object, $nearest_embargo) {
+  module_load_include('inc', 'islandora_ip_embargo', 'includes/forms');
+  $raw = variable_get($msg_type, islandora_ip_embargo_get_default_msg_text($msg_type));
+  return islandora_ip_embargo_expand_text_tokens($list_info, $object, $nearest_embargo, $raw);
+}
+
+function islandora_ip_embargo_get_access_condition_by_type($candidates, $type) {
+  $full_types = ['rights' => 'Rights', 'contact' => 'Contact Information'];
+  if (!array_key_exists($type, $full_types)) {
+    return FALSE;
+  }
+  foreach ($candidates as $candidate) {
+    $mods = simplexml_load_string($candidate['MODS']->content);
+    foreach ($mods->accessCondition as $element) {
+      if ($element['displayLabel'] == $full_types[$type]) {
+        return $element;
+      }
+    }
+  }
+  return FALSE;
+}
+
+function islandora_ip_embargo_expand_text_tokens($list_info, $object, $nearest_embargo, $raw_text) {
+  preg_match_all('/(%%[a-z\-]+%%)/', $raw_text, $matches);
+
+  foreach ($matches[1] as $match) {
+    $replacement = islandora_ip_embargo_get_text_replacement($match, $list_info, $object, $nearest_embargo);
+    $raw_text = str_replace($match, $replacement, $raw_text);
+  }
+  return $raw_text;
+}
+
+function islandora_ip_embargo_get_text_replacement($key, $list_info, $object, $nearest_embargo) {
+  switch ($key) {
+    case '%%institution%%':
+      $institution = "The owning institution";
+      if (module_exists('islandora_namespace_homepage')) {
+        module_load_include('php', 'islandora_namespace_homepage', 'includes/db');
+        module_load_include('php', 'islandora_namespace_homepage', 'includes/namespaces');
+        $ns_prefix = parse_pid($object->id, 'prefix');
+        $record = get_record($ns_prefix);
+        $institution = get_field_or_default('title', $record, $ns_prefix);
+      }
+      return $institution;
+
+    case '%%geographic-description%%':
+      return $list_info->description;
+
+    case '%%rights%%':
+    case '%%contact%%':
+      $type = str_replace('%%', '', $key);
+      return islandora_ip_embargo_get_access_condition_by_type(array($object, $nearest_embargo), $type);
+  }
+}

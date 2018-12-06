@@ -94,7 +94,42 @@ function islandora_ip_embargo_settings_form($form, &$form_state) {
     '#required' => FALSE,
     '#default_value' => variable_get('islandora_ip_embargo_debug_logging', FALSE),
   );
+  $in_msg_type = 'islandora_ip_embargo_message_ebargoed_but_in_range';
+  $form[$in_msg_type] = array(
+    '#type' => 'textarea',
+    '#title' => t('Embargoed but in range message'),
+    '#description' => t('Message for users of embargoed items whose IP is in the allowed range. Available tokens are "%%institution%%", "%%geographic-description%%", "%%rights%%", "%%contact%%'),
+    '#required' => TRUE,
+    '#default_value' => variable_get(
+      $in_msg_type,
+      islandora_ip_embargo_get_default_msg_text($in_msg_type)
+    ),
+  );
+  $out_msg_type = 'islandora_ip_embargo_message_ebargoed_and_outta_range';
+  $form[$out_msg_type] = array(
+    '#type' => 'textarea',
+    '#title' => t('Embargoed and not in range message'),
+    '#description' => t('Message for users of embargoed items whose IP is not in the allowed range(s). Available tokens are "%%institution%%", "%%geographic-description%%", "%%rights%%", "%%contact%%'),
+    '#required' => TRUE,
+    '#default_value' => variable_get(
+      $out_msg_type,
+      islandora_ip_embargo_get_default_msg_text($out_msg_type)
+    ),
+  );
   return system_settings_form($form);
+}
+
+function islandora_ip_embargo_get_default_msg_text($type) {
+  switch ($type) {
+    case 'islandora_ip_embargo_message_ebargoed_and_outta_range':
+      return 'Because of your current location, you are not able to view this item. %%institution%% supplied the following information about this restriction: %%rights%% %%contact%%';
+
+    case 'islandora_ip_embargo_message_ebargoed_but_in_range':
+      return '%%institution%% has applied restrictions to the use of this item. It is available %%geographic-description%%. Because of your current location, you are able to view this item';
+
+    default:
+      return '';
+  }
 }
 
 /**
@@ -188,8 +223,9 @@ function islandora_ip_embargo_manage_lists_form($form, &$form_state) {
   $results = islandora_ip_embargo_get_lists();
   while ($data = $results->fetchObject()) {
     $options[$data->lid]['name'] = l($data->name, 'admin/islandora/tools/ip_embargo/lists/' . $data->lid);
+    $options[$data->lid]['description'] = $data->description;
   }
-  $header = array('name' => t('Name'));
+  $header = array('name' => t('Name'), 'description' => t('Description'));
   $form['Lists'] = array(
     '#type' => 'tableselect',
     '#header' => $header,
@@ -273,6 +309,12 @@ function islandora_ip_embargo_add_list_form($form, &$form_state) {
     '#type' => 'textfield',
     '#required' => TRUE,
   );
+  $form['description'] = array(
+    '#title' => t('Network List Description'),
+    '#description' => t('User-friendly description of the list.'),
+    '#type' => 'textfield',
+    '#required' => TRUE,
+  );
   $form['submit'] = array('#type' => 'submit', '#value' => t('Create list'));
 
   return $form;
@@ -288,7 +330,7 @@ function islandora_ip_embargo_add_list_form($form, &$form_state) {
  */
 function islandora_ip_embargo_add_list_form_submit($form, &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  islandora_ip_embargo_add_list($form_state['values']['name']);
+  islandora_ip_embargo_add_list($form_state['values']['name'], $form_state['values']['description']);
   $form_state['redirect'] = 'admin/islandora/tools/ip_embargo';
 }
 
@@ -308,7 +350,9 @@ function islandora_ip_embargo_add_list_form_submit($form, &$form_state) {
 function islandora_ip_embargo_edit_list_form($form, &$form_state, $list_identifier) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   $list_information = islandora_ip_embargo_get_lists_information($list_identifier);
-  $list_name = islandora_ip_embargo_get_list_name($list_identifier);
+  $list= islandora_ip_embargo_get_list_object_by_lid($list_identifier);
+  $list_name = $list->name;
+  $list_dsescription = $list->description;
   $form_state['storage']['islandora_ip_embargo']['list_identifier'] = $list_identifier;
 
   $header = array('low_end' => t('low end'), 'high_end' => t('high end'));
@@ -326,6 +370,13 @@ function islandora_ip_embargo_edit_list_form($form, &$form_state, $list_identifi
     '#type' => 'textfield',
     '#required' => TRUE,
     '#default_value' => $list_name,
+  );
+  $form['description'] = array(
+    '#title' => t('Network List Description'),
+    '#description' => t('A description of a physical location of the allowed network to comlete the sentence: "This item is available ______". An example value for this field could be "the LSU campus wired and wireless networks."'),
+    '#type' => 'textfield',
+    '#required' => TRUE,
+    '#default_value' => $list_dsescription,
   );
   $form['name_submit'] = array(
     '#type' => 'submit',
@@ -365,6 +416,7 @@ function islandora_ip_embargo_edit_list_form_name_submit($form, &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
   islandora_ip_embargo_edit_list(
     $form_state['values']['name'],
+    $form_state['values']['description'],
     $form_state['storage']['islandora_ip_embargo']['list_identifier']);
 }
 
