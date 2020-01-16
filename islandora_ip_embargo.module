@@ -302,6 +302,7 @@ function islandora_ip_embargo_islandora_view_object_alter(&$object, &$rendered) 
       while ($list_info = $list_results->fetchObject()) {
         if (islandora_ip_embargo_ip_in_range($list_info->low_end, $list_info->high_end)) {
           $in_range = TRUE;
+          $embargo_details = '<div class="ip-embargo-details passEmbargo">';
           break;
         }
       }

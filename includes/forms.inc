@@ -609,7 +609,7 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
  */
 function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
-  if ($form_state['values']['lists'] === 'Inherit') {
+  if ($form_state['values']['lists'] === 'Inherit' | $form_state['values']['lists'] === '0') {
     islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
     return $form;
   }
