@@ -553,13 +553,18 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
   $form['lists'] = array(
     '#type' => 'select',
     '#title' => 'IP address range list',
-    '#description' => t('The list of IP ranges for which this object will be available.  Any other network address will be blocked.'),
+    '#description' => t('The list of IP ranges for which this object will be available.  Any other network address will be blocked. Set to "blank" list or "Inherit" to unembargo'),
     '#options' => $options,
   );
   $form['expiry_date'] = array(
     '#type' => 'date',
     '#title' => 'Expiry',
     '#description' => t('When the Embargo will end.'),
+    '#default_value' => array(
+      'year' => date('Y', strtotime('1 year')),
+      'month' => intval(date('m')),
+      'day' => date('d'),
+    ), 
   );
   $form['never_expire'] = array(
     '#type' => 'checkbox',
@@ -581,6 +586,11 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
     $form['lists']['#default_value'] = $embargo_info->lid;
     if (!isset($embargo_info->expiry)) {
       $form['never_expire']['#default_value'] = 1;
+      $form['expiry_date']['#default_value'] = array(
+          'year' => date('Y', strtotime('1 year')),
+          'month' => intval(date('m')),
+          'day' => date('d'),
+        );
     }
     else {
       $year = date('Y', $embargo_info->expiry);
@@ -595,7 +605,6 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
   }
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Set Embargo'));
-
   return $form;
 }
 
