@@ -531,7 +531,7 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
   $form_state['storage']['islandroa_ip_embargo']['update'] = FALSE;
   $form_state['storage']['islandroa_ip_embargo']['pid'] = $islandora_object->id;
   $list_results = islandora_ip_embargo_get_lists();
-  $options = array(0 => NULL);
+  $options = array(0 => 'No Embargo');
   while ($data = $list_results->fetchObject()) {
     $options[$data->lid] = $data->name;
   }
@@ -553,7 +553,7 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
   $form['lists'] = array(
     '#type' => 'select',
     '#title' => 'IP address range list',
-    '#description' => t('The list of IP ranges for which this object will be available.  Any other network address will be blocked. Set to "blank" list or "Inherit" to unembargo'),
+    '#description' => t('The list of IP ranges for which this object will be available.  Any other network address will be blocked. "Inherit" will apply collection level embargo to the item if collecction level embargo exists'),
     '#options' => $options,
   );
   $form['expiry_date'] = array(
@@ -618,6 +618,9 @@ function islandora_ip_embargo_object_embargo_form($form, &$form_state, $islandor
  */
 function islandora_ip_embargo_object_embargo_form_submit($form, &$form_state) {
   module_load_include('inc', 'islandora_ip_embargo', 'includes/utilities');
+  if ($form_state['values']['lists'] === 'Unembargo') {
+    $form_state['values']['lists'] = NULL;
+  }
   if ($form_state['values']['lists'] === 'Inherit' | $form_state['values']['lists'] === '0') {
     islandora_ip_embargo_remove_embargo($form_state['storage']['islandroa_ip_embargo']['pid']);
     return $form;
